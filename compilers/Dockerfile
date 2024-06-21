@@ -111,22 +111,46 @@ RUN set -xe && \
     ./configure \
       --prefix=/usr/local/bash-$VERSION && \
     make -j$(nproc) && \
-    make -j$(nproc) install & \
+    make -j$(nproc) install && \
     rm -rf /tmp/*; \
   done
 
-#Pascal compilers
+#F# compilers
+
+#C# compilers
+
+#Java compilers
+
+#Ruby compilers
+
+#FreePascal compilers
+ENV PASCAL_VERSIONS \
+  3.2.2
+RUN set -xe && \
+  for VERSION in $PASCAL_VERSIONS; do \
+    curl -fSsl "https://downloads.freepascal.org/fpc/dist/$VERSION/x86_64-linux/fpc-$VERSION.x86_64-linux.tar" -o /tmp/fpc-$VERSION.tar && \
+    mkdir /tmp/fpc-$VERSION && \
+    tar -xf /tmp/fpc-$VERSION.tar -C /tmp/fpc-$VERSION --strip-components=1 && \
+    rm /tmp/fpc-$VERSION.tar && \
+    cd /tmp/fpc-$VERSION && \
+    echo "/usr/local/fpc-$VERSION" | ./install.sh  && \
+    ln -s /usr/local/fpc-$VERSION/bin/fpc /usr/bin/fpc && \
+    ln -s /usr/local/fpc-$VERSION/bin/ppcx64 /usr/bin/ppcx64 && \
+    rm -rf /tmp/*; \
+  done
 
 #display info about compilers
 #mostly used for debug
 #would be removed in future versions
 #(also shows commands for run scripts on diff langs)
-CMD /usr/local/gcc-13.3.0/g++ --version
-CMD /usr/local/python-2.7.17/python2 -v
-CMD /usr/local/python-3.12.4/python3 -v
-CMD /usr/local/nasm-2.16.03/bin/nasmld -v
-CMD /usr/local/php-8.3.8/bin/php -v
-CMD /usr/local/bash-5.2.21/bin/bash -v
+CMD /usr/local/gcc-13.3.0/bin/g++ --version && \
+    /usr/local/gcc-13.3.0/bin/gcc --version && \
+    /usr/local/python-2.7.17/bin/python2 -v && \
+    /usr/local/python-3.12.4/bin/python3 -v && \
+    /usr/local/nasm-2.16.03/bin/nasm -v && \
+    /usr/local/php-8.3.8/bin/php -v && \
+    /usr/local/bash-5.2.21/bin/bash --version && \
+    /usr/local/fpc-3.2.2/bin/fpc -v
 
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="0.1.0"
+LABEL version="0.1.1"
