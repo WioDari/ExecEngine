@@ -8,5 +8,6 @@ Available languages and modules in docker image:
 3. Assembly (NASM 2.16.03)
 4. PHP (8.3.8)
 5. Bash (5.2.21)
+6. Pascal (FPC 3.2.2)
 
 Main inspiration: https://github.com/judge0/judge0/tree/master
