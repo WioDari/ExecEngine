@@ -1,7 +1,7 @@
-#Debian is preferred, depends on api module
+#Debian is preferred, depends on API module
 FROM buildpack-deps:latest
 
-#GNU-GCC compiler
+#GNU-GCC
 #installed versions: 13.3.0
 #choose preferred version on mirror site
 #https://ftpmirror.gnu.org/gnu/gcc/
@@ -27,7 +27,7 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#Python compilers
+#Python
 #installed versions: 2.7.17, 3.12.4
 #choose preferred version on mirror site
 #https://www.python.org/ftp/python/
@@ -48,7 +48,25 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#Assembler compilers
+#PyPy compilers
+#PyPy version: 7.3.16
+#check for latest versions on official page:
+#https://www.pypy.org/
+#Python versions: 2.7 and 3.10
+ENV PYPY_VERSION 7.3.16
+ENV PYTHON_VERSIONS \
+  3.10 \
+  2.7
+RUN set -xe && \
+  for VERSION in $PYTHON_VERSIONS; do \
+    curl -fSsl "https://downloads.python.org/pypy/pypy$VERSION-v$PYPY_VERSION-linux64.tar.bz2" -o /tmp/pypy$VERSION.tar.bz2 && \
+    mkdir /usr/local/pypy$VERSION && \
+    tar -xf /tmp/pypy$VERSION.tar.bz2 -C /usr/local/pypy$VERSION --strip-components=1 && \
+    ln -s /usr/local/pypy$VERSION/bin/pypy /usr/bin/pypy$VERSION && \
+    rm -rf /tmp/*; \
+  done
+
+#Assembly
 #installed versions: 2.16.03
 #check for newer version on mirror site
 #https://www.nasm.us/pub/releasebuilds/
@@ -71,7 +89,7 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#PHP compilers
+#PHP
 #installed versions: 8.3.8
 #select preferred version on PHP official site:
 #https://www.php.net/distributions/
@@ -115,15 +133,70 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#F# compilers
-
-#C# compilers
-
-#Java compilers
+#Java
+#you can add more version
+#but be careful with download links (add more statements in if ... else)
+#if needed.
+#select other versions here:
+#https://jdk.java.net/
+ENV JAVA_VERSIONS \
+  22
+RUN set -xe && \
+  for VERSION in $JAVA_VERSIONS; do \
+    if [ $VERSION = 17 || $VERSION = 21 ]; then \
+      URL="https://download.java.net/openjdk/jdk$VERSION/ri/openjdk-$VERSION+35_linux-x64_bin.tar.gz"; \
+    else \
+      URL="https://download.java.net/openjdk/jdk$VERSION/ri/openjdk-$VERSION+36_linux-x64_bin.tar.gz"; \
+    fi; \
+    curl -fSsl -k "$URL" -o /tmp/openjdk-$VERSION.tar.gz && \
+    mkdir /usr/local/openjdk$VERSION && \
+    tar -xf /tmp/openjdk-$VERSION.tar.gz -C /usr/local/openjdk$VERSION --strip-components=1 && \
+    ln -s /usr/local/openjdk$VERSION/bin/java /usr/bin/java && \
+    ln -s /usr/local/openjdk$VERSION/bin/jar /usr/bin/jar && \
+    ln -s /usr/local/openjdk$VERSION/bin/javac /usr/bin/javac && \
+    rm -rf /tmp/*; \
+  done
 
 #Ruby compilers
+#you can choose preferred versions here:
+#https://cache.ruby-lang.org/pub/ruby/
+ENV RUBY_VERSIONS \
+  3.3.3
+RUN set -xe && \
+  for VERSION in $RUBY_VERSIONS; do \
+    curl -fSsl "https://cache.ruby-lang.org/pub/ruby/${VERSION%.*}/ruby-$VERSION.tar.gz" -o /tmp/ruby-$VERSION.tar.gz && \
+    mkdir /tmp/ruby-$VERSION && \
+    tar -xf /tmp/ruby-$VERSION.tar.gz -C /tmp/ruby-$VERSION --strip-components=1 && \
+    cd /tmp/ruby-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/ruby-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
 
-#FreePascal compilers
+#NodeJS compilers
+#you can choose preferred versions here:
+#https://www.nodejs.org/dist
+ENV NODE_VERSIONS \
+  20.15.0
+RUN set -xe && \
+  for VERSION in $NODE_VERSIONS; do \
+    curl -fSsl "https://nodejs.org/dist/v$VERSION/node-v$VERSION.tar.gz" -o /tmp/node-$VERSION.tar.gz && \
+    mkdir /tmp/node-$VERSION && \
+    tar -xf /tmp/node-$VERSION.tar.gz -C /tmp/node-$VERSION --strip-components=1 && \
+    cd /tmp/node-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/node-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#FreePascal
+#installed version: 3.2.2
+#check for newer version on official site:
+#https://downloads.freepascal.org/fpc/dist/
 ENV PASCAL_VERSIONS \
   3.2.2
 RUN set -xe && \
@@ -145,12 +218,17 @@ RUN set -xe && \
 #(also shows commands for run scripts on diff langs)
 CMD /usr/local/gcc-13.3.0/bin/g++ --version && \
     /usr/local/gcc-13.3.0/bin/gcc --version && \
-    /usr/local/python-2.7.17/bin/python2 -v && \
-    /usr/local/python-3.12.4/bin/python3 -v && \
+    /usr/local/python-2.7.17/bin/python2 --version && \
+    /usr/local/python-3.12.4/bin/python3 --version && \
     /usr/local/nasm-2.16.03/bin/nasm -v && \
     /usr/local/php-8.3.8/bin/php -v && \
     /usr/local/bash-5.2.21/bin/bash --version && \
+    /usr/local/openjdk22/bin/java -version && \
+    /usr/local/pypy3.10/bin/pypy --version && \
+    /usr/local/pypy2.7/bin/pypy --version && \
+    /usr/local/node-20.15.0/bin/node -v && \
+    /usr/local/ruby-3.3.3/bin/ruby -v && \
     /usr/local/fpc-3.2.2/bin/fpc -v
 
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="0.1.1"
+LABEL version="0.1.2"
