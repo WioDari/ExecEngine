@@ -212,23 +212,114 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
+#Dart
+#installed versions: 3.4.4
+#check for new versions here:
+#https://dart.dev/get-dart/archive
+ENV DART_VERSIONS \
+  3.4.4
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y unzip && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $DART_VERSIONS; do \
+    curl -fSsl "https://storage.googleapis.com/dart-archive/channels/stable/release/$VERSION/sdk/dartsdk-linux-x64-release.zip" -o /tmp/dart-$VERSION.zip && \
+    unzip -d /usr/local/dart-$VERSION /tmp/dart-$VERSION.zip && \
+    ln -s /usr/local/dart-$VERSION/dart-sdk/bin/dart /usr/bin/dart && \
+    rm -rf /tmp/*; \
+  done
+
+#Go
+#installed versions: 1.22.4
+#latest versions:
+#https://go.dev/doc/install
+ENV GO_VERSIONS \
+  1.22.4
+RUN set -xe && \
+  for VERSION in $GO_VERSIONS; do \
+    curl -fSsl "https://dl.google.com/go/go$VERSION.linux-amd64.tar.gz" -o /tmp/golang-$VERSION.tar.gz && \
+    mkdir /usr/local/go-$VERSION && \
+    tar -xf /tmp/golang-$VERSION.tar.gz -C /usr/local/go-$VERSION --strip-components=1 && \
+    ln -s /usr/local/golang-$VERSION/bin/go /usr/bin/go && \
+    rm -rf /tmp/*; \
+  done
+
+#Rust
+#installed versions: 1.79.0
+#check latest version here:
+#https://forge.rust-lang.org/infra/other-installation-methods.html#source-code
+ENV RUST_VERSIONS \
+  1.79.0
+RUN set -xe && \
+  for VERSION in $RUST_VERSIONS; do \
+    curl -fSsl "https://static.rust-lang.org/dist/rust-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/rust-$VERSION.tar.gz && \
+    mkdir /tmp/rust-$VERSION && \
+    tar -xf /tmp/rust-$VERSION.tar.gz -C /tmp/rust-$VERSION --strip-components=1 && \
+    cd /tmp/rust-$VERSION && \
+    ./install.sh \
+      --prefix=/usr/local/rust-$VERSION \
+      --components=rustc,rust-std-x86_64-unknown-linux-gnu && \
+    rm -rf /tmp/*; \
+  done
+
+#Kotlin
+#installed version: 2.0.0
+#check latest version here:
+#https://github.com/JetBrains/kotlin/releases/
+ENV KOTLIN_VERSIONS \
+  2.0.0
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y unzip && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $KOTLIN_VERSIONS; do \
+    curl -fSsL "https://github.com/JetBrains/kotlin/releases/download/v$VERSION/kotlin-compiler-$VERSION.zip" -o /tmp/kotlin-compiler-$VERSION.zip && \
+    mkdir /usr/local/kotlin-$VERSION && \
+    unzip /tmp/kotlin-compiler-$VERSION.zip -d /usr/local/kotlin-$VERSION && \
+    rm -rf /tmp/*; \
+  done
+
+#Swift
+#installed versions: 5.10.1
+#check latest version here:
+#https://github.com/swiftlang/swift/releases/
+ENV SWIFT_VERSIONS \
+  5.10.1
+RUN set -xe && \
+  for VERSION in $SWIFT_VERSIONS; do \
+    curl -fSsL "https://download.swift.org/swift-$VERSION-release/debian12/swift-$VERSION-RELEASE/swift-$VERSION-RELEASE-debian12.tar.gz" -o /tmp/swift-$VERSION.tar.gz && \
+    mkdir /usr/local/swift-$VERSION && \
+    tar -xf /tmp/swift-$VERSION.tar.gz -C /usr/local/swift-$VERSION --strip-components=2 && \
+    rm -rf /tmp/*; \
+  done
+
 #display info about compilers
 #mostly used for debug
 #would be removed in future versions
 #(also shows commands for run scripts on diff langs)
-CMD /usr/local/gcc-13.3.0/bin/g++ --version && \
-    /usr/local/gcc-13.3.0/bin/gcc --version && \
-    /usr/local/python-2.7.17/bin/python2 --version && \
-    /usr/local/python-3.12.4/bin/python3 --version && \
-    /usr/local/nasm-2.16.03/bin/nasm -v && \
-    /usr/local/php-8.3.8/bin/php -v && \
-    /usr/local/bash-5.2.21/bin/bash --version && \
-    /usr/local/openjdk22/bin/java -version && \
-    /usr/local/pypy3.10/bin/pypy --version && \
-    /usr/local/pypy2.7/bin/pypy --version && \
-    /usr/local/node-20.15.0/bin/node -v && \
-    /usr/local/ruby-3.3.3/bin/ruby -v && \
-    /usr/local/fpc-3.2.2/bin/fpc -v
+#CMD /usr/local/gcc-13.3.0/bin/g++ --version && \
+#    /usr/local/gcc-13.3.0/bin/gcc --version && \
+#    /usr/local/python-2.7.17/bin/python2 --version && \
+#    /usr/local/python-3.12.4/bin/python3 --version && \
+#    /usr/local/nasm-2.16.03/bin/nasm -v && \
+#    /usr/local/php-8.3.8/bin/php -v && \
+#    /usr/local/bash-5.2.21/bin/bash --version && \
+#    /usr/local/openjdk22/bin/java -version && \
+#    /usr/local/pypy3.10/bin/pypy --version && \
+#    /usr/local/pypy2.7/bin/pypy --version && \
+#    /usr/local/node-20.15.0/bin/node -v && \
+#    /usr/local/ruby-3.3.3/bin/ruby -v && \
+#    /usr/local/dart-3.4.4/dart-sdk/bin/dart -v && \
+#    /usr/local/go-1.22.4/bin/go version && \
+#    /usr/local/rust-1.79.0/bin/rustc --version && \
+#    /usr/local/kotlin-2.0.0/kotlinc/bin/kotlin -version && \
+#    /usr/local/fpc-3.2.2/bin/fpc -v
+
+COPY tests /usr/local/tests
+
+CMD ["/usr/local/tests/run_tests.sh"]
+#remove comment for interactive mode
+#CMD bash
 
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="0.1.2"
+LABEL version="0.1.3"

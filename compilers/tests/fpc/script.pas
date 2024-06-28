@@ -1,5 +1,5 @@
 program script;
 
 begin
-    writeln("Hello, world!");
-end;
+    writeln('Hello, world! (Pascal)');
+end.
