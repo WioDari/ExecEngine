@@ -1,0 +1,6 @@
+NAME="Java"
+VERSIONS="22"
+SOURCE_FILE="Main.java"
+COMPILED_FILE="Main"
+COMPILE_CMD="usr/local/openjdk22/bin/javac -d . /usr/local/tests/java/Main.java"
+RUN_CMD="/usr/local/openjdk22/bin/java Main"

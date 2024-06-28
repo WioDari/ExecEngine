@@ -1,0 +1,6 @@
+NAME="Pascal"
+VERSIONS="3.2.2"
+SOURCE_FILE="script.pas"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/fpc-3.2.2/bin/fpc /usr/local/tests/fpc/script.pas"
+RUN_CMD="/usr/local/tests/fpc/script"
