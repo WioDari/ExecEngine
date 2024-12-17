@@ -1,0 +1,6 @@
+NAME="Dart"
+VERSIONS="3.4.4"
+SOURCE_FILE="script.dart"
+COMPILED_FILE="script.exe"
+COMPILE_CMD="/usr/local/dart-3.4.4/dart-sdk/bin/dart compile exe /usr/local/tests/dart/script.dart -o script.exe"
+RUN_CMD="./script.exe"

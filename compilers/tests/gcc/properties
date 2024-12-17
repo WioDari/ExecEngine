@@ -1,0 +1,6 @@
+NAME="C"
+VERSIONS="13.3.0"
+SOURCE_FILE="script.c"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/gcc-13.3.0/bin/gcc /usr/local/tests/gcc/script.c -o script"
+RUN_CMD="./script"
