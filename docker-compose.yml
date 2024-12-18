@@ -18,9 +18,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - compilers-volume:/opt/compilers
-    # Если необходимо, добавьте команды для копирования бинарников в /opt/compilers
-    # Например:
-    # command: /bin/sh -c "cp /path/to/binaries/* /opt/compilers/"
   
   api:
     build:
