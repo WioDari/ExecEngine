@@ -1,6 +1,0 @@
-NAME="Python"
-VERSIONS="2.7.17 3.12.4"
-SOURCE_FILE="script.py"
-COMPILED_FILE=""
-COMPILE_CMD=""
-RUN_CMD="/usr/local/python-${version}/bin/python${version%%.*} /usr/local/tests/python/script-${version}.py"

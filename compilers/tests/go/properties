@@ -1,6 +1,0 @@
-NAME="Go"
-VERSIONS="1.22.4"
-SOURCE_FILE="script.go"
-COMPILED_FILE="script"
-COMPILE_CMD="/usr/local/go-1.22.4/bin/go build -o script /usr/local/tests/go/script.go"
-RUN_CMD="./script"

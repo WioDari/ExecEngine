@@ -1,6 +1,0 @@
-NAME="PHP"
-VERSIONS="20.15.0"
-SOURCE_FILE="script.php"
-COMPILED_FILE=""
-COMPILE_CMD=""
-RUN_CMD="/usr/local/php-8.3.8/bin/php /usr/local/tests/php/script.php"

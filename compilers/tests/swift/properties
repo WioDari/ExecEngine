@@ -1,6 +1,0 @@
-NAME="Swift"
-VERSIONS="5.10.1"
-SOURCE_FILE="script.swift"
-COMPILED_FILE="script"
-COMPILE_CMD="/usr/local/swift-5.10.1/bin/swiftc /usr/local/tests/swift/script.swift"
-RUN_CMD="./script"

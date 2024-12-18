@@ -1,6 +1,0 @@
-NAME="NASM"
-VERSIONS="2.16.03"
-SOURCE_FILE="script.asm"
-COMPILED_FILE="script.o"
-COMPILE_CMD="/usr/local/nasm-2.16.03/bin/nasm -f elf64 /usr/local/tests/nasm/script.asm && ld -o /usr/local/tests/nasm/script /usr/local/tests/nasm/script.o"
-RUN_CMD="/usr/local/tests/nasm/script"
