@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "status_code": "IQ",
+        "status_full": "In Queue"
+    },
+    {
+        "id": 2,
+        "status_code": "PS",
+        "status_full": "Processing submission"
+    },
+    {
+        "id": 3,
+        "status_code": "OK",
+        "status_full": "Accepted"
+    },
+    {
+        "id": 4,
+        "status_code": "WA",
+        "status_full": "Wrong answer"
+    },
+    {
+        "id": 5,
+        "status_code": "TL",
+        "status_full": "Time limit exceeded"
+    },
+    {
+        "id": 6,
+        "status_code": "ML",
+        "status_full": "Memory limit exceeded"
+    },
+    {
+        "id": 7,
+        "status_code": "CE",
+        "status_full": "Compilation Error"
+    },
+    {
+        "id": 8,
+        "status_code": "RE",
+        "status_full": "Runtime Error"
+    }
+]

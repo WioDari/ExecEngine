@@ -1,0 +1,6 @@
+NAME="PyPy"
+VERSIONS="2.7 3.10"
+SOURCE_FILE="script.py"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/pypy$version/bin/pypy /usr/local/tests/pypy/script-$version.py"

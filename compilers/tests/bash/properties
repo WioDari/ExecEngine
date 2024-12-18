@@ -1,0 +1,6 @@
+NAME="BASH"
+VERSIONS="5.2.21"
+SOURCE_FILE="script.sh"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/bash-5.2.21/bin/bash /usr/local/tests/bash/script.sh"

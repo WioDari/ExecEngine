@@ -1,0 +1,6 @@
+NAME="Kotlin"
+VERSIONS="2.0.0"
+SOURCE_FILE="script.kt"
+COMPILED_FILE="ScriptKt.class"
+COMPILE_CMD="/usr/local/kotlin-2.0.0/kotlinc/bin/kotlinc /usr/local/tests/kotlin/script.kt"
+RUN_CMD="/usr/local/kotlin-2.0.0/kotlinc/bin/kotlin ScriptKt.class"

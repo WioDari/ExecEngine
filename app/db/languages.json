@@ -1,0 +1,200 @@
+[
+    {
+        "id": 1,
+        "NAME": "Assembly (NASM v2.16.03)",
+        "VERSION": "2.16.03",
+        "SOURCE_FILE": "script.asm",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/opt/compilers/nasm -f elf64 ?/script.asm && ld -o ?/script ?/script.o",
+        "RUN_CMD": "?/script"
+    },
+    {
+        "id": 2,
+        "NAME": "Bash (v5.2.21)",
+        "VERSION": "5.2.21",
+        "SOURCE_FILE": "script.sh",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/opt/compilers/bash ?/script.sh"
+    },
+    {
+        "id": 3,
+        "NAME": "C (GNU GCC v13.3.0)",
+        "VERSION": "13.3.0",
+        "SOURCE_FILE": "script.c",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/opt/compilers/gcc ?/script.c -o script",
+        "RUN_CMD": "?/script"
+    },
+    {
+        "id": 4,
+        "NAME": "C++ (GNU GCC v13.3.0)",
+        "VERSION": "13.3.0",
+        "SOURCE_FILE": "script.cpp",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/opt/compilers/g++ ?/script.cpp -o script",
+        "RUN_CMD": "?/script"
+    },
+    {
+        "id": 5,
+        "NAME": "Dart (v3.4.4)",
+        "VERSION": "3.4.4",
+        "SOURCE_FILE": "script.dart",
+        "COMPILED_FILE": "script.exe",
+        "COMPILE_CMD": "/opt/compilers/dart compile exe ?/script.dart -o script.exe",
+        "RUN_CMD": "?/script.exe"
+    },
+    {
+        "id": 6,
+        "NAME": "Go (v1.22.4)",
+        "VERSION": "1.22.4",
+        "SOURCE_FILE": "script.go",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/opt/compilers/go build -o script ?/script.go",
+        "RUN_CMD": "?/script"
+    },
+    {
+        "id": 7,
+        "NAME": "PHP (v8.3.8)",
+        "VERSION": "8.3.8",
+        "SOURCE_FILE": "script.php",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/opt/compilers/php ?/script.php"
+    },
+    {
+        "id": 8,
+        "NAME": "Java (OpenJDK v22)",
+        "VERSION": "22",
+        "SOURCE_FILE": "Main.java",
+        "COMPILED_FILE": "Main",
+        "COMPILE_CMD": "/opt/compilers/javac -d . ?/Main.java",
+        "RUN_CMD": "/opt/compilers/java Main"
+    },
+    {
+        "id": 9,
+        "NAME": "JavaScript (Node.JS v20.15.0)",
+        "VERSION": "20.15.0",
+        "SOURCE_FILE": "script.js",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/opt/compilers/node ?/script.js"
+    },
+    {
+        "id": 10,
+        "NAME": "Kotlin (v2.0.0)",
+        "VERSION": "2.0.0",
+        "SOURCE_FILE": "script.kt",
+        "COMPILED_FILE": "ScriptKt.class",
+        "COMPILE_CMD": "/usr/local/kotlin-2.0.0/kotlinc/bin/kotlinc /usr/local/tests/kotlin/script.kt",
+        "RUN_CMD": "/usr/local/kotlin-2.0.0/kotlinc/bin/kotlin ScriptKt.class"
+    },
+    {
+        "id": 11,
+        "NAME": "Pascal (FPC v3.2.2)",
+        "VERSION": "3.2.2",
+        "SOURCE_FILE": "script.pas",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/usr/local/fpc-3.2.2/bin/fpc /usr/local/tests/fpc/script",
+        "RUN_CMD": "/usr/local/tests/fpc/script"
+    },
+    {
+        "id": 12,
+        "NAME": "Python (v2.7.17)",
+        "VERSION": "2.7.17",
+        "SOURCE_FILE": "script-2.7.17.py",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/local/python-2.7.17/bin/python2 /usr/local/tests/python/script-2.7.17.py"
+    },
+    {
+        "id": 13,
+        "NAME": "Python (v3.12.4)",
+        "VERSION": "3.12.4",
+        "SOURCE_FILE": "script-3.12.4.py",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/local/python-3.12.4/bin/python3 /usr/local/tests/python/script-3.12.4.py"
+    },
+    {
+        "id": 14,
+        "NAME": "PyPy (Python v2.7)",
+        "VERSION": "2.7",
+        "SOURCE_FILE": "script-2.7.py",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/local/pypy2.7/bin/pypy /usr/local/tests/pypy/script-2.7.py"
+    },
+    {
+        "id": 15,
+        "NAME": "PyPy (Python v3.10)",
+        "VERSION": "3.10",
+        "SOURCE_FILE": "script-3.10.py",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/local/pypy3.10/bin/pypy /usr/local/tests/pypy/script-3.10.py"
+    },
+    {
+        "id": 16,
+        "NAME": "Ruby (v3.3.3)",
+        "VERSION": "3.3.3",
+        "SOURCE_FILE": "script.rb",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/local/ruby-$VERSION/bin/ruby /usr/local/tests/ruby/script.rb"
+    },
+    {
+        "id": 17,
+        "NAME": "Rust (v1.79.0)",
+        "VERSION": "1.79.0",
+        "SOURCE_FILE": "script.rs",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/usr/local/rust-1.79.0/bin/rustc /usr/local/tests/rust/script.rs",
+        "RUN_CMD": "./script"
+    },
+    {
+        "id": 18,
+        "NAME": "Swift (v5.10.1)",
+        "VERSION": "5.10.1",
+        "SOURCE_FILE": "script.swift",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/usr/local/swift-5.10.1/bin/swiftc /usr/local/tests/swift/script.swift",
+        "RUN_CMD": "./script"
+    },
+    {
+        "id": 19,
+        "NAME": "D (DMD v2.109.1)",
+        "VERSION": "2.109.1",
+        "SOURCE_FILE": "script.d",
+        "COMPILED_FILE": "script",
+        "COMPILE_CMD": "/usr/local/d-2.109.1/linux64/bin/dmd /usr/local/tests/d/script.d",
+        "RUN_CMD": "./script"
+    },
+    {
+        "id": 20,
+        "NAME": "Lua (v5.4.7)",
+        "VERSION": "5.4.7",
+        "SOURCE_FILE": "script.lua",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "lua /usr/local/tests/lua/script.lua"
+    },
+    {
+        "id": 21,
+        "NAME": "Scala (v3.3.3)",
+        "VERSION": "3.3.3",
+        "SOURCE_FILE": "Script.scala",
+        "COMPILED_FILE": "Script",
+        "COMPILE_CMD": "/usr/local/scala-3.3.3/bin/scalac /usr/local/tests/scala/Script.scala",
+        "RUN_CMD": "/usr/local/scala-3.3.3/bin/scala Script"
+    },
+    {
+        "id": 22,
+        "NAME": "Perl (v5.36.0)",
+        "VERSION": "5.36.0",
+        "SOURCE_FILE": "script.pl",
+        "COMPILED_FILE": null,
+        "COMPILE_CMD": null,
+        "RUN_CMD": "/usr/bin/perl /usr/local/tests/perl/script.pl"
+    }
+]
