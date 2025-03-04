@@ -5,7 +5,7 @@
         "VERSION": "2.16.03",
         "SOURCE_FILE": "script.asm",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/opt/compilers/nasm -f elf64 ?/script.asm && ld -o ?/script ?/script.o",
+        "COMPILE_CMD": "/usr/local/nasm-2.16.03/bin/nasm -f elf64 ?/script.asm && ld -o ?/script ?/script.o",
         "RUN_CMD": "?/script"
     },
     {
@@ -15,24 +15,24 @@
         "SOURCE_FILE": "script.sh",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/opt/compilers/bash ?/script.sh"
+        "RUN_CMD": "/usr/local/bash-5.2.21/bin/bash ?/script.sh"
     },
     {
         "id": 3,
-        "NAME": "C (GNU GCC v13.3.0)",
-        "VERSION": "13.3.0",
+        "NAME": "C (GNU GCC v12.4.0)",
+        "VERSION": "12.4.0",
         "SOURCE_FILE": "script.c",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/opt/compilers/gcc ?/script.c -o script",
+        "COMPILE_CMD": "/usr/local/gcc-12.4.0/bin/gcc ?/script.c -o script",
         "RUN_CMD": "?/script"
     },
     {
         "id": 4,
-        "NAME": "C++ (GNU GCC v13.3.0)",
-        "VERSION": "13.3.0",
+        "NAME": "C++ (GNU GCC v12.4.0)",
+        "VERSION": "12.4.0",
         "SOURCE_FILE": "script.cpp",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/opt/compilers/g++ ?/script.cpp -o script",
+        "COMPILE_CMD": "/usr/local/gcc-12.4.0/bin/g++ ?/script.cpp -o script",
         "RUN_CMD": "?/script"
     },
     {
@@ -41,7 +41,7 @@
         "VERSION": "3.4.4",
         "SOURCE_FILE": "script.dart",
         "COMPILED_FILE": "script.exe",
-        "COMPILE_CMD": "/opt/compilers/dart compile exe ?/script.dart -o script.exe",
+        "COMPILE_CMD": "/usr/local/dart-3.4.4/dart-sdk/bin/dart compile exe ?/script.dart -o script.exe",
         "RUN_CMD": "?/script.exe"
     },
     {
@@ -50,7 +50,7 @@
         "VERSION": "1.22.4",
         "SOURCE_FILE": "script.go",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/opt/compilers/go build -o script ?/script.go",
+        "COMPILE_CMD": "/usr/local/go-1.22.4/bin/go build -o script ?/script.go",
         "RUN_CMD": "?/script"
     },
     {
@@ -60,7 +60,7 @@
         "SOURCE_FILE": "script.php",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/opt/compilers/php ?/script.php"
+        "RUN_CMD": "/usr/local/php-8.3.8/bin/php ?/script.php"
     },
     {
         "id": 8,
@@ -68,8 +68,8 @@
         "VERSION": "22",
         "SOURCE_FILE": "Main.java",
         "COMPILED_FILE": "Main",
-        "COMPILE_CMD": "/opt/compilers/javac -d . ?/Main.java",
-        "RUN_CMD": "/opt/compilers/java Main"
+        "COMPILE_CMD": "/usr/local/openjdk22/bin/javac -d . ?/Main.java",
+        "RUN_CMD": "/usr/local/openjdk22/bin/java Main"
     },
     {
         "id": 9,
@@ -78,7 +78,7 @@
         "SOURCE_FILE": "script.js",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/opt/compilers/node ?/script.js"
+        "RUN_CMD": "/usr/local/node-20.15.0/bin/node ?/script.js"
     },
     {
         "id": 10,
@@ -95,8 +95,8 @@
         "VERSION": "3.2.2",
         "SOURCE_FILE": "script.pas",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/usr/local/fpc-3.2.2/bin/fpc /usr/local/tests/fpc/script",
-        "RUN_CMD": "/usr/local/tests/fpc/script"
+        "COMPILE_CMD": "/usr/local/fpc-3.2.2/bin/fpc ?/script",
+        "RUN_CMD": "?/script"
     },
     {
         "id": 12,
@@ -105,7 +105,7 @@
         "SOURCE_FILE": "script-2.7.17.py",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/local/python-2.7.17/bin/python2 /usr/local/tests/python/script-2.7.17.py"
+        "RUN_CMD": "/usr/local/python-2.7.17/bin/python2 ?/script-2.7.17.py"
     },
     {
         "id": 13,
@@ -114,7 +114,7 @@
         "SOURCE_FILE": "script-3.12.4.py",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/local/python-3.12.4/bin/python3 /usr/local/tests/python/script-3.12.4.py"
+        "RUN_CMD": "/usr/local/python-3.12.4/bin/python3 ?/script-3.12.4.py"
     },
     {
         "id": 14,
@@ -123,7 +123,7 @@
         "SOURCE_FILE": "script-2.7.py",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/local/pypy2.7/bin/pypy /usr/local/tests/pypy/script-2.7.py"
+        "RUN_CMD": "/usr/local/pypy2.7/bin/pypy ?/script-2.7.py"
     },
     {
         "id": 15,
@@ -132,7 +132,7 @@
         "SOURCE_FILE": "script-3.10.py",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/local/pypy3.10/bin/pypy /usr/local/tests/pypy/script-3.10.py"
+        "RUN_CMD": "/usr/local/pypy3.10/bin/pypy ?/script-3.10.py"
     },
     {
         "id": 16,
@@ -141,7 +141,7 @@
         "SOURCE_FILE": "script.rb",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/local/ruby-$VERSION/bin/ruby /usr/local/tests/ruby/script.rb"
+        "RUN_CMD": "/usr/local/ruby-3.3.3/bin/ruby ?/script.rb"
     },
     {
         "id": 17,
@@ -149,8 +149,8 @@
         "VERSION": "1.79.0",
         "SOURCE_FILE": "script.rs",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/usr/local/rust-1.79.0/bin/rustc /usr/local/tests/rust/script.rs",
-        "RUN_CMD": "./script"
+        "COMPILE_CMD": "/usr/local/rust-1.79.0/bin/rustc ?/script.rs",
+        "RUN_CMD": "?/script"
     },
     {
         "id": 18,
@@ -158,8 +158,8 @@
         "VERSION": "5.10.1",
         "SOURCE_FILE": "script.swift",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/usr/local/swift-5.10.1/bin/swiftc /usr/local/tests/swift/script.swift",
-        "RUN_CMD": "./script"
+        "COMPILE_CMD": "/usr/local/swift-5.10.1/bin/swiftc ?/script.swift",
+        "RUN_CMD": "?/script"
     },
     {
         "id": 19,
@@ -167,8 +167,8 @@
         "VERSION": "2.109.1",
         "SOURCE_FILE": "script.d",
         "COMPILED_FILE": "script",
-        "COMPILE_CMD": "/usr/local/d-2.109.1/linux64/bin/dmd /usr/local/tests/d/script.d",
-        "RUN_CMD": "./script"
+        "COMPILE_CMD": "/usr/local/d-2.109.1/linux64/bin/dmd ?/script.d",
+        "RUN_CMD": "?/script"
     },
     {
         "id": 20,
@@ -177,7 +177,7 @@
         "SOURCE_FILE": "script.lua",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "lua /usr/local/tests/lua/script.lua"
+        "RUN_CMD": "lua ?/script.lua"
     },
     {
         "id": 21,
@@ -185,7 +185,7 @@
         "VERSION": "3.3.3",
         "SOURCE_FILE": "Script.scala",
         "COMPILED_FILE": "Script",
-        "COMPILE_CMD": "/usr/local/scala-3.3.3/bin/scalac /usr/local/tests/scala/Script.scala",
+        "COMPILE_CMD": "/usr/local/scala-3.3.3/bin/scalac ?/Script.scala",
         "RUN_CMD": "/usr/local/scala-3.3.3/bin/scala Script"
     },
     {
@@ -195,6 +195,6 @@
         "SOURCE_FILE": "script.pl",
         "COMPILED_FILE": null,
         "COMPILE_CMD": null,
-        "RUN_CMD": "/usr/bin/perl /usr/local/tests/perl/script.pl"
+        "RUN_CMD": "/usr/bin/perl ?/script.pl"
     }
 ]

@@ -8,20 +8,22 @@ import tempfile
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.orm_models import SubmissionModel, LanguageModel
+from app.core.config import settings
 import logging
+from starlette.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
 async def process_submission(submission: SubmissionModel, db: Session):
     try:
-        language = db.query(LanguageModel).filter(LanguageModel.id == submission.language_id).first()
+        submission = await run_in_threadpool(lambda: db.merge(submission))
+        language = await run_in_threadpool(lambda:db.query(LanguageModel).filter(LanguageModel.id == submission.language_id).first())
         if not language:
             raise ValueError("Language not found.")
 
         source_code = base64.b64decode(submission.source_code).decode('utf-8')
         stdin_data = base64.b64decode(submission.stdin).decode('utf-8') if submission.stdin else None
         expected_output = base64.b64decode(submission.expected_output).decode('utf-8') if submission.expected_output else None
-        print(source_code)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             source_file_path = os.path.join(tmpdir, language.source_file)
@@ -36,7 +38,12 @@ async def process_submission(submission: SubmissionModel, db: Session):
 
             compile_cmd = language.compile_cmd
             run_cmd = language.run_cmd
-
+            
+            compile_cmd = compile_cmd.replace("?",tmpdir) if compile_cmd else None
+            run_cmd = run_cmd.replace("?",tmpdir) if run_cmd else None
+            logger.info(compile_cmd)
+            logger.info(run_cmd)
+            
             for key, value in env.items():
                 compile_cmd = compile_cmd.replace(f"${key}", value) if compile_cmd else None
                 run_cmd = run_cmd.replace(f"${key}", value) if run_cmd else None
@@ -56,11 +63,12 @@ async def process_submission(submission: SubmissionModel, db: Session):
                 )
                 stdout, stderr = await compile_process.communicate()
                 compile_output = (stdout + stderr).decode('utf-8')
+                logger.info(compile_output)
                 if compile_process.returncode != 0:
                     submission.compile_output = base64.b64encode(compile_output.encode()).decode()
                     submission.status_id = 7  # Compilation Error
                     submission.finished_at = datetime.utcnow()
-                    db.commit()
+                    await run_in_threadpool(db.commit)
                     logger.error(f"Compilation error for submission {submission.token}")
                     print(base64.b64encode(compile_output.encode()).decode())
                     return
@@ -93,8 +101,8 @@ async def process_submission(submission: SubmissionModel, db: Session):
                     submission.status_id = 4  # Wrong Answer
             else:
                 submission.status_id = 8  # Runtime Error
-
-            db.commit()
+            logger.info(submission.status_id)
+            await run_in_threadpool(db.commit)
             logger.info(f"Processed submission {submission.token}")
 
     except Exception as e:
@@ -102,4 +110,4 @@ async def process_submission(submission: SubmissionModel, db: Session):
         submission.status_id = 9  # Internal Error
         submission.stderr = base64.b64encode(str(e).encode()).decode()
         submission.finished_at = datetime.utcnow()
-        db.commit()
+        await run_in_threadpool(db.commit)

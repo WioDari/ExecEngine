@@ -2,11 +2,11 @@
 FROM buildpack-deps:latest
 
 #GNU-GCC
-#installed versions: 13.3.0
+#installed versions: 12.4.0
 #choose preferred version on mirror site
 #https://ftpmirror.gnu.org/gnu/gcc/
 ENV GCC_VERSIONS \
-  13.3.0
+  12.4.0
 RUN set -xe && \
   for VERSION in $GCC_VERSIONS; do \
     curl -fSsl -k "https://ftp.gnu.org/gnu/gcc/gcc-$VERSION/gcc-$VERSION.tar.gz" -o /tmp/gcc-$VERSION.tar.gz && \
@@ -292,35 +292,46 @@ RUN set -xe && \
     tar -xf /tmp/swift-$VERSION.tar.gz -C /usr/local/swift-$VERSION --strip-components=2 && \
     rm -rf /tmp/*; \
   done
+ 
+RUN set -xe && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends git libcap-dev libsystemd-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    git clone https://github.com/ioi/isolate.git /tmp/isolate && \
+    cd /tmp/isolate && \
+    git checkout 758ab000e3a1bcf1e57ffddea2340ffa1a5af49b && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*
 
 COPY tests /usr/local/tests
 
 RUN mkdir -p /opt/compilers
 
-RUN cp /usr/local/gcc-13.3.0/bin/g++ /opt/compilers/
-RUN cp /usr/local/gcc-13.3.0/bin/gcc /opt/compilers/
-RUN cp /usr/local/python-2.7.17/bin/python2 /opt/compilers/
-RUN cp /usr/local/python-3.12.4/bin/python3 /opt/compilers/
 RUN cp /usr/local/nasm-2.16.03/bin/nasm /opt/compilers/
-RUN cp /usr/local/php-8.3.8/bin/php /opt/compilers/
 RUN cp /usr/local/bash-5.2.21/bin/bash /opt/compilers/
-RUN cp /usr/local/openjdk22/bin/java /opt/compilers/
-RUN cp /usr/local/pypy3.10/bin/pypy /opt/compilers/
-#RUN cp /usr/local/pypy2.7/bin/pypy /opt/compilers/
-RUN cp /usr/local/node-20.15.0/bin/node /opt/compilers/
-RUN cp /usr/local/ruby-3.3.3/bin/ruby /opt/compilers/
+RUN cp /usr/local/gcc-12.4.0/bin/g++ /opt/compilers/
+RUN cp /usr/local/gcc-12.4.0/bin/gcc /opt/compilers/
 RUN cp /usr/local/dart-3.4.4/dart-sdk/bin/dart /opt/compilers/
 RUN cp /usr/local/go-1.22.4/bin/go /opt/compilers/
-RUN cp /usr/local/rust-1.79.0/bin/rustc /opt/compilers/
+RUN cp /usr/local/php-8.3.8/bin/php /opt/compilers/
+RUN cp /usr/local/openjdk22/bin/java /opt/compilers/
+RUN cp /usr/local/openjdk22/bin/javac /opt/compilers/
+RUN cp /usr/local/node-20.15.0/bin/node /opt/compilers/
 RUN cp /usr/local/kotlin-2.0.0/kotlinc/bin/kotlin /opt/compilers/
+RUN cp /usr/local/kotlin-2.0.0/kotlinc/bin/kotlinc /opt/compilers/
 RUN cp /usr/local/fpc-3.2.2/bin/fpc /opt/compilers/
-
+RUN cp /usr/local/python-2.7.17/bin/python2 /opt/compilers/
+RUN cp /usr/local/python-3.12.4/bin/python3 /opt/compilers/
+RUN cp /usr/local/pypy3.10/bin/pypy /opt/compilers/pypy3
+RUN cp /usr/local/pypy2.7/bin/pypy /opt/compilers/pypy2
+RUN cp /usr/local/ruby-3.3.3/bin/ruby /opt/compilers/
+RUN cp /usr/local/rust-1.79.0/bin/rustc /opt/compilers/
+RUN cp /usr/local/swift-5.10.1/bin/swift /opt/compilers/
+#RUN cp /usr/local/d-2.109.1/linux64/bin/dmd /opt/compilers/
+#RUN cp /usr/local/scala-3.3.3/bin/scalac /opt/compilers/
+#RUN cp /usr/local/scala-3.3.3/bin/scala /opt/compilers/
 
 RUN chmod +x /opt/compilers/*
-
-#CMD ["/usr/local/tests/run_tests.sh"]
-#remove comment for interactive mode
-#CMD bash
 
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
 LABEL version="0.1.4"

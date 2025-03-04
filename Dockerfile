@@ -1,8 +1,10 @@
 # app/Dockerfile
 
-FROM python:3.11-slim
+FROM execengine-compilers AS compilers
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+FROM python:3.11-slim AS api
+
+RUN apt-get update && apt-get install -y build-essential libpq-dev netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 WORKDIR .
 
@@ -13,8 +15,15 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+COPY --from=compilers /usr/local /usr/local
+
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "."]

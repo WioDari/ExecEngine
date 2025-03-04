@@ -10,8 +10,6 @@ from datetime import datetime
 from typing import List
 from app.core.dependencies import get_current_user
 from app.models.orm_models import UserModel
-#from app.main import submission_queue_manager
-from app.services.queue_manager import SubmissionQueueManager
 
 router = APIRouter()
 
@@ -49,7 +47,7 @@ async def create_batch_submission(
             command_line_args=subm.command_line_args,
             time_limit=subm.time_limit,
             memory_limit=subm.memory_limit,
-            status=1,  # In Queue
+            status_id=1,  # In Queue
             created_at=created_at,
             batch_id=db_batch.id,
             user_id=current_user.id
@@ -59,7 +57,7 @@ async def create_batch_submission(
         db.commit()
         db.refresh(db_submission)
 
-        # Добавление отправки в очередь
+        from main import submission_queue_manager
         await submission_queue_manager.enqueue_submission(db_submission, db)
 
     return BatchSubmissionResponse(
@@ -88,7 +86,7 @@ async def get_batch_submissions(
     for submission in submissions:
         response.append(SubmissionResponse(
             token=submission.token,
-            status=submission.status,
+            status_id=submission.status_id,
             created_at=submission.created_at,
             finished_at=submission.finished_at,
             time=submission.time,

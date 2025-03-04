@@ -10,9 +10,6 @@ from datetime import datetime
 from app.core.dependencies import get_current_user
 from app.models.orm_models import UserModel
 
-#from app.main import submission_queue_manager
-#from app.services.queue_manager import SubmissionQueueManager
-
 router = APIRouter()
 
 @router.post("/", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
@@ -43,7 +40,6 @@ async def create_submission(
     db.commit()
     db.refresh(db_submission)
 
-    # Добавление отправки в очередь
     from main import submission_queue_manager
     await submission_queue_manager.enqueue_submission(db_submission, db)
 

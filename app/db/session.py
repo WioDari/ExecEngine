@@ -20,6 +20,12 @@ engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+def create_tables_manager():
+    print("[INFO] Creating tables for Database")
+    Base.metadata.create_all(bind=engine)
+    print("[INFO] All tables created successfully")
+
+
 def load_json(file_name):
     base_dir = Path(__file__).resolve().parent
     file_path = base_dir / file_name
@@ -78,6 +84,7 @@ def wait_for_db():
         try:
             with engine.connect() as connection:
                 logger.info("Database is ready!")
+                create_tables_manager()
                 add_data_to_db()
                 return
         except OperationalError:

@@ -38,5 +38,10 @@
         "id": 8,
         "status_code": "RE",
         "status_full": "Runtime Error"
+    },
+    {
+        "id": 9,
+        "status_code": "IE",
+        "status_full": "Internal Error"
     }
 ]

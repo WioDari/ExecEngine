@@ -4,8 +4,8 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ExecEngine API"
-    PROJECT_VERSION: str = "0.1.0"
-    PROJECT_DESCRIPTION: str = "API сервис для запуска программного кода."
+    PROJECT_VERSION: str = "0.1.5"
+    PROJECT_DESCRIPTION: str = "ExecEngine is designed to run untrusted code in web-centric environments and applications."
     
     DATABASE_HOST: str
     DATABASE_NAME: str
