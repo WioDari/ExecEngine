@@ -1,8 +1,8 @@
-# app/main.py
+# main.py
 
 import asyncio
 from fastapi import FastAPI
-from app.api.v1.endpoints import (
+from app.api.v2.endpoints import (
     about_router,
     languages_router,
     statuses_router,
@@ -11,7 +11,9 @@ from app.api.v1.endpoints import (
     configuration_router,
     auth_router,
     users_router,
-    protected_router
+    protected_router,
+    isolate_router,
+    workers_router
 )
 from app.core.config import settings
 from app.db.session import wait_for_db
@@ -40,12 +42,14 @@ async def startup_event():
 async def shutdown_event():
     await submission_queue_manager.stop()
 
-app.include_router(about_router, prefix="/v1/about", tags=["About"])
-app.include_router(languages_router, prefix="/v1/languages", tags=["Languages"])
-app.include_router(statuses_router, prefix="/v1/statuses", tags=["Statuses"])
-app.include_router(submissions_router, prefix="/v1/submissions", tags=["Submissions"])
-app.include_router(submissions_batch_router, prefix="/v1/submissions/batch", tags=["Batch Submissions"])
-app.include_router(configuration_router, prefix="/v1/configuration", tags=["Configuration"])
-app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
-app.include_router(users_router, prefix="/v1/users", tags=["Users"])
-app.include_router(protected_router, prefix="/v1/protected", tags=["Protected"])
+app.include_router(about_router, prefix="/v2/about", tags=["About"])
+app.include_router(languages_router, prefix="/v2/languages", tags=["Languages"])
+app.include_router(statuses_router, prefix="/v2/statuses", tags=["Statuses"])
+app.include_router(submissions_router, prefix="/v2/submissions", tags=["Submissions"])
+app.include_router(submissions_batch_router, prefix="/v2/submissions/batch", tags=["Batch Submissions"])
+app.include_router(configuration_router, prefix="/v2/configuration", tags=["Configuration"])
+app.include_router(auth_router, prefix="/v2/auth", tags=["Authentication"])
+app.include_router(users_router, prefix="/v2/users", tags=["Users"])
+app.include_router(protected_router, prefix="/v2/protected", tags=["Protected"])
+app.include_router(isolate_router, prefix="/v2/isolate", tags=["Isolate"])
+app.include_router(workers_router, prefix="/v2/workers", tags=["Workers"])

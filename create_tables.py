@@ -3,8 +3,13 @@
 from app.db.session import engine,Base
 from app.models import orm_models
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_tables_manager():
-    print("[INFO] Creating tables for Database")
+    logger.info("Creating tables for database")
     Base.metadata.create_all(bind=engine)
-    print("[INFO] All tables created successfully")
+    logger.info("All tables created successfully!")
+    """logger.info("Creating privileged user")
+    logger.info("Privileged user created successfully!")"""
