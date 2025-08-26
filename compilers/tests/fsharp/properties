@@ -1,0 +1,6 @@
+NAME="F# (.NET SDK v$VERSION)"
+VERSIONS="8.0.412"
+SOURCE_FILE="script.fsx"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/dotnet-$VERSION/dotnet fsi ?/$SOURCE_FILE"

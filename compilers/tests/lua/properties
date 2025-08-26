@@ -1,0 +1,6 @@
+NAME="Lua (v$VERSION)"
+VERSIONS="5.4.8"
+SOURCE_FILE="script.lua"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/lua-$VERSION/bin/lua ?/$SOURCE_FILE"

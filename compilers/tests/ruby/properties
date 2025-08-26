@@ -1,6 +1,6 @@
-NAME="Ruby"
+NAME="Ruby (v$VERSION)"
 VERSIONS="3.3.3"
 SOURCE_FILE="script.rb"
 COMPILED_FILE=""
 COMPILE_CMD=""
-RUN_CMD="/usr/local/ruby-3.3.3/bin/ruby /usr/local/tests/ruby/script.rb"
+RUN_CMD="/usr/local/ruby-$VERSION/bin/ruby ?/$SOURCE_FILE"

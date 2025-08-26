@@ -1,0 +1,6 @@
+NAME="OCaml (v$VERSION)"
+VERSIONS="5.3.0"
+SOURCE_FILE="script.ml"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/ocaml-$VERSION/bin/ocamlc $args ?/$SOURCE_FILE -o $COMPILED_FILE"
+RUN_CMD="./$COMPILED_FILE"

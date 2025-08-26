@@ -1,0 +1,6 @@
+NAME="Scala (v$VERSION)"
+VERSIONS="3.7.1"
+SOURCE_FILE="Main.scala"
+COMPILED_FILE="Main"
+COMPILE_CMD="/usr/local/scala-$VERSION/bin/scalac $args ?/$SOURCE_FILE"
+RUN_CMD="/usr/local/scala-$VERSION/bin/scala ?/$COMPILED_FILE"

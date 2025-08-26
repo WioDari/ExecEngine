@@ -1,15 +1,12 @@
-#Debian is preferred, depends on API module
-FROM buildpack-deps:latest
+FROM buildpack-deps:bookworm
 
 #GNU-GCC
-#installed versions: 13.1.0
-#choose preferred version on mirror site
 #https://ftpmirror.gnu.org/gnu/gcc/
 ENV GCC_VERSIONS \
   12.4.0
 RUN set -xe && \
   for VERSION in $GCC_VERSIONS; do \
-    curl -fSsl -k "https://ftp.gnu.org/gnu/gcc/gcc-$VERSION/gcc-$VERSION.tar.gz" -o /tmp/gcc-$VERSION.tar.gz && \
+    curl -fSsl -k "https://mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-$VERSION/gcc-$VERSION.tar.gz" -o /tmp/gcc-$VERSION.tar.gz && \
     mkdir /tmp/gcc-$VERSION && \
     tar -xf /tmp/gcc-$VERSION.tar.gz -C /tmp/gcc-$VERSION --strip-components=1 && \
     rm /tmp/gcc-$VERSION.tar.gz && \
@@ -20,7 +17,7 @@ RUN set -xe && \
     cd "$tmpdir" && \
     /tmp/gcc-$VERSION/configure \
       --disable-multilib \
-      --enable-languages=c,c++ \
+      --enable-languages=c,c++,objc,fortran \
       --prefix=/usr/local/gcc-$VERSION && \
     make -j$(nproc) && \
     make -j$(nproc) install-strip && \
@@ -28,12 +25,10 @@ RUN set -xe && \
   done
 
 #Python
-#installed versions: 2.7.17, 3.12.4
-#choose preferred version on mirror site
 #https://www.python.org/ftp/python/
 ENV PYTHON_VERSIONS \
   2.7.17 \
-  3.12.4
+  3.13.5
 RUN set -xe && \
   for VERSION in $PYTHON_VERSIONS; do \
     curl -fSsl "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz" -o /tmp/python-$VERSION.tar.xz && \
@@ -48,14 +43,13 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#PyPy compilers
-#PyPy version: 7.3.16
-#check for latest versions on official page:
+#PyPy
+#PyPy version: 7.3.20
 #https://www.pypy.org/
-#Python versions: 2.7 and 3.10
-ENV PYPY_VERSION 7.3.16
+#Python versions: 2.7 and 3.11
+ENV PYPY_VERSION 7.3.20
 ENV PYTHON_VERSIONS \
-  3.10 \
+  3.11 \
   2.7
 RUN set -xe && \
   for VERSION in $PYTHON_VERSIONS; do \
@@ -67,8 +61,6 @@ RUN set -xe && \
   done
 
 #Assembly
-#installed versions: 2.16.03
-#check for newer version on mirror site
 #https://www.nasm.us/pub/releasebuilds/
 ENV NASM_VERSIONS \
   2.16.03
@@ -90,8 +82,6 @@ RUN set -xe && \
   done
 
 #PHP
-#installed versions: 8.3.8
-#select preferred version on PHP official site:
 #https://www.php.net/distributions/
 ENV PHP_VERSIONS \
   8.3.8
@@ -114,14 +104,12 @@ RUN set -xe && \
   done
 
 #Bash
-#installed version: 5.2.21
-#select preferred version on mirror site:
 #https://ftp.gnu.org/gnu/bash/
 ENV BASH_VERSIONS \
   5.2.21
 RUN set -xe && \
   for VERSION in $BASH_VERSIONS; do \
-    curl -fSsl "https://ftp.gnu.org/gnu/bash/bash-$VERSION.tar.gz" -o /tmp/bash-$VERSION.tar.gz && \
+    curl -fSsl "https://www.mirrorservice.org/sites/ftp.gnu.org/gnu/bash/bash-$VERSION.tar.gz" -o /tmp/bash-$VERSION.tar.gz && \
     mkdir /tmp/bash-$VERSION && \
     tar -xf /tmp/bash-$VERSION.tar.gz -C /tmp/bash-$VERSION --strip-components=1 && \
     rm /tmp/bash-$VERSION.tar.gz && \
@@ -134,10 +122,6 @@ RUN set -xe && \
   done
 
 #Java
-#you can add more version
-#but be careful with download links (add more statements in if ... else)
-#if needed.
-#select other versions here:
 #https://jdk.java.net/
 ENV JAVA_VERSIONS \
   22
@@ -157,8 +141,7 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#Ruby compilers
-#you can choose preferred versions here:
+#Ruby
 #https://cache.ruby-lang.org/pub/ruby/
 ENV RUBY_VERSIONS \
   3.3.3
@@ -175,11 +158,10 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
-#NodeJS compilers
-#you can choose preferred versions here:
+#NodeJS
 #https://www.nodejs.org/dist
 ENV NODE_VERSIONS \
-  20.15.0
+  21.7.3
 RUN set -xe && \
   for VERSION in $NODE_VERSIONS; do \
     curl -fSsl "https://nodejs.org/dist/v$VERSION/node-v$VERSION.tar.gz" -o /tmp/node-$VERSION.tar.gz && \
@@ -194,30 +176,24 @@ RUN set -xe && \
   done
 
 #FreePascal
-#installed version: 3.2.2
-#check for newer version on official site:
 #https://downloads.freepascal.org/fpc/dist/
 ENV PASCAL_VERSIONS \
   3.2.2
 RUN set -xe && \
   for VERSION in $PASCAL_VERSIONS; do \
-    curl -fSsl "https://downloads.freepascal.org/fpc/dist/$VERSION/x86_64-linux/fpc-$VERSION.x86_64-linux.tar" -o /tmp/fpc-$VERSION.tar && \
+    curl -fSsL "https://sourceforge.net/projects/freepascal/files/Linux/$VERSION/fpc-$VERSION.x86_64-linux.tar/download" -o /tmp/fpc-$VERSION.tar && \
     mkdir /tmp/fpc-$VERSION && \
     tar -xf /tmp/fpc-$VERSION.tar -C /tmp/fpc-$VERSION --strip-components=1 && \
     rm /tmp/fpc-$VERSION.tar && \
     cd /tmp/fpc-$VERSION && \
-    echo "/usr/local/fpc-$VERSION" | ./install.sh  && \
-    ln -s /usr/local/fpc-$VERSION/bin/fpc /usr/bin/fpc && \
-    ln -s /usr/local/fpc-$VERSION/bin/ppcx64 /usr/bin/ppcx64 && \
+    echo "/usr/local/fpc-$VERSION" | ./install.sh && \
     rm -rf /tmp/*; \
   done
 
 #Dart
-#installed versions: 3.4.4
-#check for new versions here:
 #https://dart.dev/get-dart/archive
 ENV DART_VERSIONS \
-  3.4.4
+  3.8.2
 RUN set -xe && \
   apt-get update && \
   apt-get install -y unzip && \
@@ -230,11 +206,9 @@ RUN set -xe && \
   done
 
 #Go
-#installed versions: 1.22.4
-#latest versions:
 #https://go.dev/doc/install
 ENV GO_VERSIONS \
-  1.22.4
+  1.24.5
 RUN set -xe && \
   for VERSION in $GO_VERSIONS; do \
     curl -fSsl "https://dl.google.com/go/go$VERSION.linux-amd64.tar.gz" -o /tmp/golang-$VERSION.tar.gz && \
@@ -245,11 +219,9 @@ RUN set -xe && \
   done
 
 #Rust
-#installed versions: 1.79.0
-#check latest version here:
 #https://forge.rust-lang.org/infra/other-installation-methods.html#source-code
 ENV RUST_VERSIONS \
-  1.79.0
+  1.88.0
 RUN set -xe && \
   for VERSION in $RUST_VERSIONS; do \
     curl -fSsl "https://static.rust-lang.org/dist/rust-$VERSION-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/rust-$VERSION.tar.gz && \
@@ -263,11 +235,9 @@ RUN set -xe && \
   done
 
 #Kotlin
-#installed version: 2.0.0
-#check latest version here:
 #https://github.com/JetBrains/kotlin/releases/
 ENV KOTLIN_VERSIONS \
-  2.0.0
+  2.2.0
 RUN set -xe && \
   apt-get update && \
   apt-get install -y unzip && \
@@ -280,8 +250,6 @@ RUN set -xe && \
   done
 
 #Swift
-#installed versions: 5.10.1
-#check latest version here:
 #https://github.com/swiftlang/swift/releases/
 ENV SWIFT_VERSIONS \
   5.10.1
@@ -293,40 +261,208 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
+#.NET SDK (F#, Visual Basic, C#)
+#https://dotnet.microsoft.com/en-us/download
+ENV DOTNET_VERSIONS \
+  8.0.412
 RUN set -xe && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends git libcap-dev libsystemd-dev && \
-    rm -rf /var/lib/apt/lists/* && \
-    git clone https://github.com/ioi/isolate.git /tmp/isolate && \
-    cd /tmp/isolate && \
-    git checkout 6f2326bef4c52cb511104b0eec7e41d090b94e26 && \
-    make -j$(nproc) install
+  for VERSION in $DOTNET_VERSIONS; do \
+    curl -fSsL "https://builds.dotnet.microsoft.com/dotnet/Sdk/$VERSION/dotnet-sdk-$VERSION-linux-x64.tar.gz" -o /tmp/dotnet-$VERSION.tar.gz && \
+    mkdir /usr/local/dotnet-$VERSION && \
+    tar -xf /tmp/dotnet-$VERSION.tar.gz -C /usr/local/dotnet-$VERSION && \
+    rm -rf /tmp/*; \
+  done
+
+#R
+#https://cloud.r-project.org/src/base/R-4
+ENV R_VERSIONS \
+  4.5.1
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends r-base-dev libpcre2-dev && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $R_VERSIONS; do \
+    curl -fSsL "https://cloud.r-project.org/src/base/R-4/R-$VERSION.tar.gz" -o /tmp/r-$VERSION.tar.gz && \
+    mkdir /tmp/r-$VERSION && \
+    tar -xf /tmp/r-$VERSION.tar.gz -C /tmp/r-$VERSION --strip-components=1 && \
+    rm /tmp/r-$VERSION.tar.gz && \
+    cd /tmp/r-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/r-$VERSION \
+      --enable-R-shlib && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#Scala
+#https://github.com/scala/scala3
+ENV SCALA_VERSIONS \
+  3.7.1
+RUN set -xe && \
+  for VERSION in $SCALA_VERSIONS; do \
+    curl -fSsL "https://github.com/scala/scala3/releases/download/$VERSION/scala3-$VERSION-x86_64-pc-linux.tar.gz" -o /tmp/scala-$VERSION.tar.gz && \
+    mkdir /usr/local/scala-$VERSION && \
+    tar -xf /tmp/scala-$VERSION.tar.gz -C /usr/local/scala-$VERSION --strip-components=1 && \
+    rm -rf /tmp/*; \
+  done
+
+#D
+#http://downloads.dlang.org/releases/2.x/
+ENV D_VERSIONS \
+  2.111.0
+RUN set -xe && \
+  for VERSION in $D_VERSIONS; do \
+    curl -fSsL "http://downloads.dlang.org/releases/2.x/$VERSION/dmd.$VERSION.linux.tar.xz" -o /tmp/d-$VERSION.tar.gz && \
+    mkdir /usr/local/d-$VERSION && \
+    tar -xf /tmp/d-$VERSION.tar.gz -C /usr/local/d-$VERSION --strip-components=1 && \
+    rm -rf /usr/local/d-$VERSION/linux/*32 && \
+    rm -rf /tmp/*; \
+  done
+
+#FreeBASIC
+#https://sourceforge.net/projects/fbc/files/
+ENV FBC_VERSIONS \
+  1.10.1
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends libncurses5-dev libtinfo5 libgpm-dev libx11-dev libxext-dev libxpm-dev libxrandr-dev libxrender-dev libgl1-mesa-dev libffi-dev && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $FBC_VERSIONS; do \
+    curl -fSsL "https://sourceforge.net/projects/fbc/files/FreeBASIC-$VERSION/Binaries-Linux/FreeBASIC-$VERSION-linux-x86_64.tar.gz/download" -o /tmp/fbc-$VERSION.tar.gz && \
+    mkdir /usr/local/fbc-$VERSION && \
+    tar -xf /tmp/fbc-$VERSION.tar.gz -C /usr/local/fbc-$VERSION --strip-components=1 && \
+    rm -rf /tmp/*; \
+  done
+
+#Lua
+#https://www.lua.org/ftp/
+ENV LUA_VERSIONS \
+  5.4.8
+RUN set -xe && \
+  for VERSION in $LUA_VERSIONS; do \
+    curl -fSsL "https://www.lua.org/ftp/lua-$VERSION.tar.gz" -o /tmp/lua-$VERSION.tar.gz && \
+    mkdir /usr/local/lua-$VERSION && \
+    tar -xf /tmp/lua-$VERSION.tar.gz -C /usr/local/lua-$VERSION --strip-components=1 && \
+    rm /tmp/lua-$VERSION.tar.gz && \
+    cd /usr/local/lua-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#Haskell (GHC)
+#https://downloads.haskell.org/~ghc/
+ENV HASKELL_VERSIONS \
+  9.12.2
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends libgmp-dev libtinfo5 && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $HASKELL_VERSIONS; do \
+    curl -fSsL "https://downloads.haskell.org/~ghc/$VERSION/ghc-$VERSION-x86_64-deb10-linux.tar.gz" -o /tmp/haskell-$VERSION.tar.gz && \
+    mkdir /tmp/haskell-$VERSION && \
+    tar -xf /tmp/haskell-$VERSION.tar.gz -C /tmp/haskell-$VERSION --strip-components=1 && \
+    rm /tmp/haskell-$VERSION.tar.gz && \
+    cd /tmp/haskell-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/haskell-$VERSION && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#SQLite
+#https://www.sqlite.org/
+ENV SQLITE_VERSION \
+  3.50.4
+ENV SQLITE_VERSION_DOWNLOAD \
+  3500400
+RUN set -xe && \
+  for VERSION in $SQLITE_VERSION; do \
+    curl -fSsL "https://www.sqlite.org/2025/sqlite-autoconf-$SQLITE_VERSION_DOWNLOAD.tar.gz" -o /tmp/sqlite-$SQLITE_VERSION.tar.gz && \
+    mkdir /tmp/sqlite-$SQLITE_VERSION && \
+    tar -xf /tmp/sqlite-$SQLITE_VERSION.tar.gz -C /tmp/sqlite-$SQLITE_VERSION --strip-components=1 && \
+    rm /tmp/sqlite-$SQLITE_VERSION.tar.gz && \
+    cd /tmp/sqlite-$SQLITE_VERSION && \
+    ./configure \
+      --prefix=/usr/local/sqlite-$SQLITE_VERSION \
+      --enable-all && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#Prolog (GNU)
+#http://www.gprolog.org/
+ENV PROLOG_VERSIONS \
+  1.5.0
+RUN set -xe && \
+  for VERSION in $PROLOG_VERSIONS; do \
+    curl -fSsL "http://www.gprolog.org/gprolog-$VERSION.tar.gz" -o /tmp/prolog-$VERSION.tar.gz && \
+    mkdir /tmp/prolog-$VERSION && \
+    tar -xf /tmp/prolog-$VERSION.tar.gz -C /tmp/prolog-$VERSION --strip-components=1 && \
+    rm /tmp/prolog-$VERSION.tar.gz && \
+    cd /tmp/prolog-$VERSION/src && \
+    ./configure \
+      --prefix=/usr/local/prolog-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#OCaml
+#https://github.com/ocaml/ocaml/releases
+ENV OCAML_VERSIONS \
+  5.3.0
+RUN set -xe && \
+  for VERSION in $OCAML_VERSIONS; do \
+    curl -fSsL "https://github.com/ocaml/ocaml/archive/refs/tags/$VERSION.tar.gz" -o /tmp/ocaml-$VERSION.tar.gz && \
+    mkdir /tmp/ocaml-$VERSION && \
+    tar -xf /tmp/ocaml-$VERSION.tar.gz -C /tmp/ocaml-$VERSION --strip-components=1 && \
+    rm /tmp/ocaml-$VERSION.tar.gz && \
+    cd /tmp/ocaml-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/ocaml-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#Octave (GNU)
+#https://octave.org
+ENV OCTAVE_VERSIONS \
+  10.2.0
+RUN set -xe && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends gfortran libblas-dev liblapack-dev libpcre3-dev && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $OCTAVE_VERSIONS; do \
+    curl -fSsL "https://mirror.us-midwest-1.nexcess.net/gnu/octave/octave-$VERSION.tar.gz" -o /tmp/octave-$VERSION.tar.gz && \
+    mkdir /tmp/octave-$VERSION && \
+    tar -xf /tmp/octave-$VERSION.tar.gz -C /tmp/octave-$VERSION --strip-components=1 && \
+    rm /tmp/octave-$VERSION.tar.gz && \
+    cd /tmp/octave-$VERSION && \
+    ./configure \
+      --prefix=/usr/local/octave-$VERSION && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf /tmp/*; \
+  done
+
+#TypeScript
+#https://github.com/microsoft/TypeScript/releases
+ENV TYPESCRIPT_VERSIONS \
+  5.9.2
+RUN set -xe && \
+  curl -fSsL "https://deb.nodesource.com/setup_12.x" | bash - && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends nodejs npm && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $TYPESCRIPT_VERSIONS; do \
+    npm install -g typescript@$VERSION; \
+    rm -rf /tmp/*; \
+  done
 
 COPY tests /usr/local/tests
 
-RUN mkdir -p /opt/compilers
-
-RUN cp -r /usr/local/nasm-2.16.03 /opt/compilers/nasm
-RUN cp -r /usr/local/bash-5.2.21 /opt/compilers/bash
-RUN cp -r /usr/local/gcc-12.4.0 /opt/compilers/gcc
-RUN cp -r /usr/local/dart-3.4.4/dart-sdk /opt/compilers/dart
-RUN cp -r /usr/local/go-1.22.4 /opt/compilers/go
-RUN cp -r /usr/local/php-8.3.8 /opt/compilers/php
-RUN cp -r /usr/local/openjdk22 /opt/compilers/java
-RUN cp -r /usr/local/node-20.15.0 /opt/compilers/node
-RUN cp -r /usr/local/kotlin-2.0.0/kotlinc /opt/compilers/kotlin
-RUN cp -r /usr/local/fpc-3.2.2 /opt/compilers/fpc
-RUN cp -r /usr/local/python-2.7.17 /opt/compilers/python2
-RUN cp -r /usr/local/python-3.12.4 /opt/compilers/python3
-RUN cp -r /usr/local/pypy3.10 /opt/compilers/pypy3
-RUN cp -r /usr/local/pypy2.7 /opt/compilers/pypy2
-RUN cp -r /usr/local/ruby-3.3.3 /opt/compilers/ruby
-RUN cp -r /usr/local/rust-1.79.0 /opt/compilers/rust
-RUN cp -r /usr/local/swift-5.10.1 /opt/compilers/swift
-#RUN cp /usr/local/d-2.109.1 /opt/compilers/d
-#RUN cp /usr/local/scala-3.3.3 /opt/compilers/scala
-
-RUN find /opt/compilers -type f -path "*/bin/*" -exec chmod +x {} \;
-
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="0.1.6"
+LABEL version="1.0.0"

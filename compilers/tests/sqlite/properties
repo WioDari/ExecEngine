@@ -1,0 +1,6 @@
+NAME="SQLite (v$VERSION)"
+VERSIONS="3.50.4"
+SOURCE_FILE="script.sql"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="cat $SOURCE_FILE | /usr/local/sqlite-$VERSION/bin/sqlite3 db.sqlite"

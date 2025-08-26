@@ -1,0 +1,6 @@
+NAME="Basic (FBC v$VERSION)"
+VERSIONS="1.10.1"
+SOURCE_FILE="script.bas"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/fbc-$VERSION/bin/fbc ?/$SOURCE_FILE"
+RUN_CMD="./$COMPILED_FILE"

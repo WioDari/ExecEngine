@@ -1,0 +1,6 @@
+NAME="Prolog (GNU v$VERSION)"
+VERSIONS="1.5.0"
+SOURCE_FILE="script.pro"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/prolog-$VERSION/gprolog-$VERSION/bin/gplc $args --no-top-level ?/$SOURCE_FILE"
+RUN_CMD="./$COMPILED_FILE"

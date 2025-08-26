@@ -1,0 +1,6 @@
+NAME="TypeScript (v$VERSION)"
+VERSIONS="5.9.2"
+SOURCE_FILE="script.ts"
+COMPILED_FILE="script.js"
+COMPILE_CMD="tsc $args ?/$SOURCE_FILE"
+RUN_CMD="/usr/local/node-21.7.3/bin/node ?/$COMPILED_FILE"

@@ -1,0 +1,6 @@
+NAME="Visual Basic (.NET SDK v$VERSION)"
+VERSIONS="8.0.412"
+SOURCE_FILE="script.vb"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/dotnet-$VERSION/dotnet new console -lang VB -o UserProgram && cat ?/$SOURCE_FILE > ?/UserProgram/Program.vb && /usr/local/dotnet-$VERSION/dotnet run --project ?/UserProgram"

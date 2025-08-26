@@ -1,0 +1,6 @@
+NAME="Haskell (GHC v$VERSION)"
+VERSIONS="9.12.2"
+SOURCE_FILE="script.hs"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/haskell-$VERSION/bin/ghc $args ?/$SOURCE_FILE"
+RUN_CMD="./$COMPILED_FILE"

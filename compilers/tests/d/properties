@@ -1,0 +1,6 @@
+NAME="D (DMD v$VERSION)"
+VERSIONS="2.111.0"
+SOURCE_FILE="script.d"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/d-$VERSION/linux/bin64/dmd $args ?/$SOURCE_FILE"
+RUN_CMD="./$COMPILED_FILE"

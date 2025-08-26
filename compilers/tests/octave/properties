@@ -1,0 +1,6 @@
+NAME="Octave (GNU v$VERSION)"
+VERSIONS="10.2.0"
+SOURCE_FILE="script.m"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/octave-$VERSION/bin/octave-cli --quiet --no-gui --no-history ?/SOURCE_FILE"

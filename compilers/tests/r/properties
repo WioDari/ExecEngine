@@ -1,0 +1,6 @@
+NAME="R (v$VERSION)"
+VERSIONS="4.5.1"
+SOURCE_FILE="script.r"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="/usr/local/r-$VERSION/bin/Rscript ?/$SOURCE_FILE"
