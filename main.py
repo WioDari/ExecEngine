@@ -2,6 +2,7 @@
 
 import asyncio
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from app.api.v2.endpoints import (
     about_router,
     languages_router,
@@ -20,13 +21,18 @@ from app.db.session import wait_for_db
 from app.core.logger import setup_logging
 from app.services.queue_manager import SubmissionQueueManager
 from create_tables import create_tables_manager
+import logging
 
 setup_logging()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
-    description=settings.PROJECT_DESCRIPTION
+    description=settings.PROJECT_DESCRIPTION,
+    openapi_url="/api/openapi.json",
+    docs_url="/docs"
 )
 
 submission_queue_manager = SubmissionQueueManager(max_concurrent=settings.MAX_CONCURRENT_SUBMISSIONS)
@@ -35,12 +41,17 @@ submission_queue_manager = SubmissionQueueManager(max_concurrent=settings.MAX_CO
 async def startup_event():
     wait_for_db()
     create_tables_manager()
-    print("[INFO] Starting API...")
+    logger.info("Starting API...")
     await submission_queue_manager.start()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await submission_queue_manager.stop()
+
+@app.get("/docs", response_class=HTMLResponse)
+async def render_docs():
+    with open("/app/public/docs.html","r") as docs_f:
+        return docs_f.read()
 
 app.include_router(about_router, prefix="/v2/about", tags=["About"])
 app.include_router(languages_router, prefix="/v2/languages", tags=["Languages"])

@@ -59,6 +59,7 @@ async def create_batch_submission(
             redirect_stderr_to_stdout=subm.redirect_stderr_to_stdout,
             enable_network=subm.enable_network,
             max_file_size=subm.max_file_size,
+            additional_files=subm.additional_files,
             status_id=1,  # In Queue
             created_at=created_at,
             batch_id=db_batch.id,
@@ -80,6 +81,7 @@ async def create_batch_submission(
                 created_at=db_submission.created_at,
                 finished_at=db_submission.finished_at,
                 time=db_submission.time,
+                wall_time=db_submission.wall_time,
                 memory=db_submission.memory,
                 exit_code=db_submission.exit_code,
                 exit_signal=db_submission.exit_signal,
@@ -89,8 +91,9 @@ async def create_batch_submission(
                 source_code=db_submission.source_code,
                 stdin=db_submission.stdin,
                 expected_output=db_submission.expected_output,
-                compiler_options=db_submission.compile_output,
-                command_line_args=db_submission.command_line_args
+                compiler_options=db_submission.compiler_options,
+                command_line_args=db_submission.command_line_args,
+                additional_files=db_submission.additional_files
             ))
         else:
             from main import submission_queue_manager
@@ -127,6 +130,7 @@ async def get_batch_submissions(
             created_at=db_submission.created_at,
             finished_at=db_submission.finished_at,
             time=db_submission.time,
+            wall_time=db_submission.wall_time,
             memory=db_submission.memory,
             exit_code=db_submission.exit_code,
             exit_signal=db_submission.exit_signal,
@@ -136,8 +140,9 @@ async def get_batch_submissions(
             source_code=db_submission.source_code,
             stdin=db_submission.stdin,
             expected_output=db_submission.expected_output,
-            compiler_options=db_submission.compile_output,
-            command_line_args=db_submission.command_line_args
+            compiler_options=db_submission.compiler_options,
+            command_line_args=db_submission.command_line_args,
+            additional_files=db_submission.additional_files
         ))
 
     return response

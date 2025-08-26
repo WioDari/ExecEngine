@@ -6,6 +6,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.models import orm_models
+from app.models import schemas
 from pathlib import Path
 import time
 import logging
@@ -40,6 +41,18 @@ def add_data_to_db():
         session.commit()
         session.query(orm_models.SubmissionModel).delete()
         session.commit()"""
+        logger.info("Creating privileged user")
+        if session.query(orm_models.UserModel).filter_by(username=settings.ADMIN_USERNAME).first() is None:
+            from app.services.user_service import create_user
+            admin_user = schemas.UserCreate(
+                username = settings.ADMIN_USERNAME,
+                password = settings.ADMIN_PASSWORD,
+                email = settings.ADMIN_EMAIL,
+                full_name = settings.ADMIN_NAME,
+                privileged_user = True
+            )
+            new_user = create_user(session, user=admin_user)
+        logger.info("Privileged user created successfully!")
         logger.info("Importing statuses and languages")
         statuses_data = load_json("statuses.json")
         languages_data = load_json("languages.json")

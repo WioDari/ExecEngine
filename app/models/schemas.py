@@ -13,6 +13,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    privileged_user: Optional[bool] = False
 
 class UserResponse(UserBase):
     id: int
@@ -70,6 +71,7 @@ class SubmissionBase(BaseModel):
     memory_limit: conint(gt=0, le=settings.MAX_MEMORY_LIMIT) = Field(128_000)
     stack_size: conint(gt=0, le=settings.MAX_STACK_SIZE) = Field(64_000)
     max_file_size: conint(gt=0, le=settings.MAX_FILE_SIZE) = Field(1_024)
+    additional_files: Optional[str] = None
 
     redirect_stderr_to_stdout: bool = False
     enable_network: bool = False
@@ -117,6 +119,7 @@ class SubmissionResponse(BaseModel):
     expected_output: Optional[str] = None  # Base64
     compiler_options: Optional[str] = None
     command_line_args: Optional[str] = None
+    additional_files: Optional[str] = None # Base64
 
     class Config:
         orm_mode = True

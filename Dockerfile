@@ -1,23 +1,32 @@
 # app/Dockerfile
 
-FROM execengine-compilers AS compilers
+FROM wiosna97/execengine-compilers:latest AS compilers
 
-FROM python:3.11 AS api
+RUN apt update && apt install -y python3-pip
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev netcat-openbsd libxml2 libffi8 libssl3 libstdc++6 zlib1g libbz2-1.0 libncursesw6 systemd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y build-essential libpq-dev netcat-openbsd libxml2 libffi8 libssl3 libstdc++6 zlib1g libbz2-1.0 libncursesw6 systemd cgroup-tools && rm -rf /var/lib/apt/lists/*
+
+RUN apt update && apt install -y systemd libpam-systemd curl libcap-dev libsystemd-dev \
+  && cd /lib/systemd/system/sysinit.target.wants/ \
+  && ls | grep -v systemd-tmpfiles-setup | xargs rm -f \
+  && rm -f /etc/systemd/system/*.wants/* \
+  && rm -f /lib/systemd/system/multi-user.target.wants/* \
+  && rm -f /lib/systemd/system/remote-fs.target.wants/*
+
+RUN echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/isolate.asc] http://www.ucw.cz/isolate/debian/ bookworm-isolate main" > /etc/apt/sources.list
+RUN curl https://www.ucw.cz/isolate/debian/signing-key.asc >/etc/apt/keyrings/isolate.asc
+RUN apt update && apt install isolate
+
+RUN systemctl set-default multi-user.target
 
 WORKDIR .
 
 COPY requirements.txt .
 
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --break-system-packages --upgrade pip
+RUN pip install --break-system-packages -r requirements.txt
 
 COPY . .
-
-COPY --from=compilers /usr/local/bin/isolate /usr/local/bin/isolate
-COPY --from=compilers /usr/local/etc/isolate /usr/local/etc/isolate
-COPY --from=compilers /tmp /tmp
 
 ENV PYTHONUNBUFFERED=1
 
@@ -26,6 +35,10 @@ EXPOSE 8000
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN touch /etc/systemd.environment
 
-#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "."]
+COPY entrypoint.service /etc/systemd/system/
+RUN ln -s /etc/systemd/system/entrypoint.service /etc/systemd/system/multi-user.target.wants/
+RUN systemctl enable entrypoint.service
+
+ENTRYPOINT ["/sbin/init"]

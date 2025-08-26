@@ -45,6 +45,7 @@ async def create_submission(
         redirect_stderr_to_stdout=submission.redirect_stderr_to_stdout,
         enable_network=submission.enable_network,
         max_file_size=submission.max_file_size,
+        additional_files=submission.additional_files,
         status_id=1,  # In Queue
         created_at=created_at,
         user_id=current_user.id
@@ -69,6 +70,7 @@ async def create_submission(
         created_at=db_submission.created_at,
         finished_at=db_submission.finished_at,
         time=db_submission.time,
+        wall_time=db_submission.wall_time,
         memory=db_submission.memory,
         exit_code=db_submission.exit_code,
         exit_signal=db_submission.exit_signal,
@@ -78,8 +80,9 @@ async def create_submission(
         source_code=db_submission.source_code,
         stdin=db_submission.stdin,
         expected_output=db_submission.expected_output,
-        compiler_options=db_submission.compile_output,
-        command_line_args=db_submission.command_line_args
+        compiler_options=db_submission.compiler_options,
+        command_line_args=db_submission.command_line_args,
+        additional_files=db_submission.additional_files
     )
 
 @router.get("/{token}", response_model=SubmissionResponse)
@@ -100,6 +103,7 @@ async def get_submission(
         created_at=submission.created_at,
         finished_at=submission.finished_at,
         time=submission.time,
+        wall_time=submission.wall_time,
         memory=submission.memory,
         exit_code=submission.exit_code,
         exit_signal=submission.exit_signal,
@@ -109,6 +113,7 @@ async def get_submission(
         source_code=submission.source_code,
         stdin=submission.stdin,
         expected_output=submission.expected_output,
-        compiler_options=submission.compile_output,
-        command_line_args=submission.command_line_args
+        compiler_options=submission.compiler_options,
+        command_line_args=submission.command_line_args,
+        additional_files=submission.additional_files
     )

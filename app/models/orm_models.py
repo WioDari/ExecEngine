@@ -86,6 +86,7 @@ class SubmissionModel(Base):
     redirect_stderr_to_stdout = Column(Boolean, default=False, nullable=False) #Create
     enable_network = Column(Boolean, default=False, nullable=False) #Create
     max_file_size = Column(Integer, default=1024, nullable=False) #Create
+    additional_files = Column(Text, nullable=True) #Create/Response
     status_id = Column(Integer, ForeignKey("statuses.id"), nullable=False) #Response
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False) #Response
     finished_at = Column(DateTime, nullable=True) #Response

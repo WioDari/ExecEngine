@@ -1,0 +1,18 @@
+# entrypoint.service
+[Unit]
+Description=EntryPoint Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/bash -c "sleep 10 & cat /proc/1/environ | tr '\0' '\n' > /etc/systemd.environment"
+ExecStart=/entrypoint.sh
+Restart=always
+User=root
+Group=root
+EnvironmentFile=/etc/systemd.environment
+StandardOutput=tty
+TTYPath=/dev/console
+
+[Install]
+WantedBy=multi-user.target

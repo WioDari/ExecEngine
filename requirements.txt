@@ -9,3 +9,4 @@ python-jose[cryptography]==3.3.0
 SQLAlchemy==2.0.20
 alembic==1.11.1
 aio-pika==9.5.5
+cryptography>=3.3.1

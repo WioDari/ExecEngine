@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[Language])
 async def get_languages(db: Session = Depends(get_db)):
-    languages = db.query(LanguageModel).all()
+    languages = db.query(LanguageModel).order_by(LanguageModel.name.asc()).all()
     return languages
 
 @router.get("/{language_id}", response_model=Language)

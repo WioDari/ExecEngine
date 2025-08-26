@@ -36,7 +36,6 @@ def strip_text(text: str | None) -> str | None:
     except (AttributeError, TypeError, ValueError):
         return text
 
-
 async def process_submission(submission: SubmissionModel, db: Session):
     try:
         submission = await run_in_threadpool(lambda: db.merge(submission))
@@ -51,10 +50,10 @@ async def process_submission(submission: SubmissionModel, db: Session):
         enable_network = "--share-net" if submission.enable_network else ""
         submission.stack_size = 0
 
-        #Creating the environment
+        #Initialize the environment
         box_id = str(hash(submission.token) % (2 ** 9))
 
-        init_cmd = f"isolate --init --dir=/opt/compilers --box-id={box_id}"
+        init_cmd = f"isolate --cg --init --box-id={box_id}"
         proc = await asyncio.create_subprocess_shell(
             init_cmd,
             stdout = asyncio.subprocess.PIPE,
@@ -77,23 +76,48 @@ async def process_submission(submission: SubmissionModel, db: Session):
         if stdin_data:
             with open(input_file_path, 'w') as f_in:
                 f_in.write(stdin_data)
+        else:
+            with open(input_file_path, 'w') as f_in: pass
+
+        #Unzip additional files
+        if submission.additional_files:
+            archive_path = f"/var/local/lib/isolate/{box_id}/box/archive.zip"
+            with open(archive_path, 'wb') as f_unzip: f_unzip.write(base64.b64decode(submission.additional_files))
+            
+            unzip_cmd = (
+                f"isolate --cg --box-id={box_id} "
+                f"--time=5 "
+                f"--fsize={settings.MAX_FILE_SIZE} "
+                f"--cg-mem={settings.MAX_MEMORY_LIMIT} "
+                f"--stderr-to-stdout "
+                f"--run -- /usr/bin/unzip -n -qq archive.zip"
+            )
+            proc = await asyncio.create_subprocess_shell(
+                unzip_cmd,
+                stdout = asyncio.subprocess.PIPE,
+                stderr = asyncio.subprocess.PIPE
+            )
+            stdout_unzip, stderr_unzip = await proc.communicate()
+            print(stdout_unzip, stderr_unzip)
 
         #Compilation process
         compile_cmd = language.compile_cmd or ""
+        compile_used_memory_kb = 0
         if compile_cmd:
             compile_cmd = compile_cmd.replace("?/", "")
             print(compile_cmd)
-            if submission.compiler_options:
-                compile_cmd += f" {submission.compiler_options}"
+            if submission.compiler_options: compile_cmd = compile_cmd.replace("$args", base64.b64decode(submission.compiler_options).decode('utf-8'))
             iso_compile_cmd = (
-                f"isolate --box-id={box_id} -p "
+                f"isolate --cg --box-id={box_id} -p "
                 f"--time=10 "
-                f'-E PATH="/opt/compilers:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
+                f"--wall-time={settings.MAX_WALL_TIME_LIMIT} "
+                f'-E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
                 f"-E HOME=/tmp "
-                f"-d /opt/compilers "
+                f"-d /tmp:rw "
                 f"--stderr=compile_stderr.txt "
                 f"--stdout=compile_stdout.txt "
-                f"--run -- {compile_cmd}"
+                f"--meta=meta.txt "
+                f"--run -- /bin/bash -c '{compile_cmd}'"
             )
             print(iso_compile_cmd)
             compile_proc = await asyncio.create_subprocess_shell(
@@ -115,6 +139,27 @@ async def process_submission(submission: SubmissionModel, db: Session):
             if os.path.exists(compile_stdout_path):
                 with open(compile_stdout_path, "r") as fs:
                     compile_stdout_data = fs.read()
+            
+            show_meta_proc = await asyncio.create_subprocess_shell(
+                "cat meta.txt",
+                cwd = sandbox_dir,
+                stdout = asyncio.subprocess.PIPE,
+                stderr = asyncio.subprocess.PIPE
+            )
+            show_meta_proc_stdout, _ = await show_meta_proc.communicate()
+            show_meta_proc_stdout = show_meta_proc_stdout.decode()
+            show_meta_proc_stdout = show_meta_proc_stdout.strip("\n")
+            show_meta_proc_stdout = show_meta_proc_stdout.split("\n")
+            to_dict = lambda arr: dict(item.split(':') for item in arr)
+            meta_compile_result = to_dict(show_meta_proc_stdout)
+            compile_used_memory_kb = int(meta_compile_result['cg-mem'])
+            
+            reset_meta_proc = await asyncio.create_subprocess_shell(
+                "sudo rm -rf meta.txt",
+                cwd = sandbox_dir,
+                stdout = asyncio.subprocess.PIPE,
+                stderr = asyncio.subprocess.PIPE
+            )
 
             if compile_proc.returncode != 0:
                 submission.compile_output = base64.b64encode(
@@ -124,8 +169,8 @@ async def process_submission(submission: SubmissionModel, db: Session):
                 submission.finished_at = datetime.utcnow()
                 await run_in_threadpool(db.commit)
 
-                #cleanup_cmd = f"/opt/compilers/isolate/bin/isolate --box-id={box_id} --cleanup"
-                #await asyncio.create_subprocess_shell(cleanup_cmd)
+                cleanup_cmd = f"isolate --cg --box-id={box_id} --cleanup"
+                await asyncio.create_subprocess_shell(cleanup_cmd)
 
                 return
 
@@ -133,28 +178,26 @@ async def process_submission(submission: SubmissionModel, db: Session):
         run_cmd = language.run_cmd or ""
         run_cmd = run_cmd.replace("?/", "")
         if submission.command_line_args:
-            run_cmd += f" {submission.command_line_args}"
+            run_cmd += f" {base64.b64decode(submission.command_line_args).decode('utf-8')}"
 
         iso_run_cmd = (
-            f"isolate --box-id={box_id} "
+            f"isolate --cg --box-id={box_id} "
             f"{redirect_stderr_to_stdout} "
             f"{enable_network} "
             f"--time={submission.time_limit or 2} "
             f"--extra-time={submission.extra_time or 0.5} "
             f"--wall-time={submission.wall_time_limit or 3} "
-            f"--mem={submission.memory_limit or 65536} "
+            f"--cg-mem={submission.memory_limit or 65536} "
             f"--fsize={submission.max_file_size or 1024} "
             f"--processes=8 "
-            f'-E PATH="/opt/compilers:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
+            f'-E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
             f"-E HOME=/tmp "
-            f"-d /opt/compilers "
             f"--stdin=prog.in "
             f"--stdout=prog.out "
             f"--stderr=prog.err "
             f"--meta=meta.txt "
-            f"--run -- {run_cmd}"
+            f"--run -- /bin/bash -c '{run_cmd}'"
         )
-        print(iso_run_cmd)
         start_time = datetime.utcnow()
         run_process = await asyncio.create_subprocess_shell(
             iso_run_cmd,
@@ -163,7 +206,6 @@ async def process_submission(submission: SubmissionModel, db: Session):
             stderr = asyncio.subprocess.PIPE
         )
         run_stdout,run_stderr = await run_process.communicate()
-        print(run_stdout, run_stderr, run_process.returncode)
         end_time = datetime.utcnow()
 
         output_file = os.path.join(sandbox_dir, "prog.out")
@@ -180,8 +222,15 @@ async def process_submission(submission: SubmissionModel, db: Session):
                 stderr_data = f_err.read()
 
         #Parse meta.txt
+        show_meta_proc = await asyncio.create_subprocess_shell(
+                "cat meta.txt",
+                cwd = sandbox_dir,
+                stdout = asyncio.subprocess.PIPE,
+                stderr = asyncio.subprocess.PIPE
+            )
         time_used_ms = int((end_time - start_time).total_seconds() * 1000)
-        memory_used_kb = 0
+        memory_used_kb_rss = settings.MAX_MEMORY_LIMIT + 1000
+        memory_used_kb_cg = settings.MAX_MEMORY_LIMIT + 1000
         exit_code = 0
         exit_signal = None
         wall_time_ms = 0.0
@@ -189,28 +238,34 @@ async def process_submission(submission: SubmissionModel, db: Session):
         if os.path.exists(meta_file):
             with open(meta_file, 'r') as fm:
                 for line in fm:
-                    if line.startswith("time:"):
-                        val = float(line.split(":")[1].strip())
-                        time_used_ms = val
-                    elif line.startswith("max-rss:"):
-                        val = int(line.split(":")[1].strip())
-                        memory_used_kb = val
-                    elif line.startswith("exitcode:"):
-                        val = float(line.split(":")[1].strip())
-                        exit_code = val
-                    elif line.startswith("exitsig:"):
-                        val = str(line.split(":")[1].strip())
-                        exit_signal = val
-                    elif line.startswith("time-wall:"):
-                        val = float(line.split(":")[1].strip())
-                        wall_time_ms = val
-                    elif line.startswith("status:"):
-                        val = str(line.split(":")[1].strip())
-                        status = val
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    parts = line.split(":", 1)
+                    if len(parts) != 2:
+                        continue
+
+                    key, value = parts[0].strip(), parts[1].strip()
+
+                    if key == "time":
+                        time_used_ms = float(value)
+                    elif key == "time-wall":
+                        wall_time_ms = float(value)
+                    elif key == "max-rss":
+                        memory_used_kb_rss = int(value)
+                    elif key == "cg-mem":
+                        memory_used_kb_cg = int(value)
+                    elif key == "exitcode":
+                        exit_code = int(value)
+                    elif key == "exitsig":
+                        exit_signal = value
+                    elif key == "status":
+                        status = value
 
         submission.time = time_used_ms
         submission.wall_time = wall_time_ms
-        submission.memory = memory_used_kb
+        submission.memory = min(memory_used_kb_rss, memory_used_kb_cg)
         submission.stdout = base64.b64encode(stdout_data.encode()).decode()
         submission.stderr = base64.b64encode(stderr_data.encode()).decode()
         submission.exit_code = exit_code
@@ -234,8 +289,8 @@ async def process_submission(submission: SubmissionModel, db: Session):
 
         await run_in_threadpool(db.commit)
 
-        #cleanup_cmd = f"/opt/compilers/isolate/bin/isolate --box-id={box_id} --cleanup"
-        #await asyncio.create_subprocess_shell(cleanup_cmd)
+        cleanup_cmd = f"isolate --cg --box-id={box_id} --cleanup"
+        await asyncio.create_subprocess_shell(cleanup_cmd)
 
     except Exception as e:
         logger.exception(f"Error processing submission {submission.token}: {e}")

@@ -10,18 +10,12 @@ services:
     ports:
       - "5432:5432"
 
-  compilers:
-    privileged: true
-    image: wiosna97/execengine-compilers:latest
-    volumes:
-      - compilers-volume:/opt/compilers
-
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: user
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -30,31 +24,22 @@ services:
 
   api:
     privileged: true
+    tty: true
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
       - db
-      - compilers
       - rabbitmq
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_HOST: db
-      DATABASE_NAME: exec_engine
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      SECRET_KEY: your_secret_key_here
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      MAX_CONCURRENT_SUBMISSIONS: 5
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: user
-      RABBITMQ_PASSWORD: user
     volumes:
-      - compilers-volume:/opt/compilers
+      - ./execengine.ini:/execengine.ini:ro
+    environment:
+      RABBITMQ_HOST: rabbitmq
+
 
 volumes:
   postgres_data:
-  compilers-volume:
   rabbitmq_data:
