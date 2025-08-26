@@ -1,9 +1,9 @@
 # ExecEngine
 ExecEngine is designed to run untrusted code in web-centric environments and applications. ExecEngine is divided into 2 main modules: API, on the basis of which you can create your own site for code testing and programming contests; and compilers module, which contains tests and Dockerfile for working with compilers.
 
-Current version of docker image (compilers): 1.0.0
+Current version of docker image: 1.0.0
 
-Current size of docker image (compilers): 13.5 GB
+Current size of docker image: 13.5 GB
 
 ## Installation
 1. Download and extract the release archive.
