@@ -23,12 +23,10 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   api:
+    image: execengine-api:latest
     privileged: true
     tty: true
     restart: always
-    build:
-      context: .
-      dockerfile: Dockerfile
     depends_on:
       - db
       - rabbitmq
@@ -43,3 +41,4 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+
