@@ -23,7 +23,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   api:
-    image: execengine-api:latest
+    image: wiosna97/execengine-api:latest
     privileged: true
     tty: true
     restart: always
@@ -41,4 +41,5 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+
 
