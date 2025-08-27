@@ -9,7 +9,7 @@ Current size of docker image: 13.5 GB
 1. Download and extract the release archive.
 2. Open the execengine.ini file and change the DATABASE_USER, DATABASE_PASSWORD, RABBITMQ_USER, RABBITMQ_PASSWORD, ADMIN_USERNAME, ADMIN_PASSWORD, and SECRET_KEY parameters to unique values.
 3. Open the docker-compose.ini file and change the POSTGRES_USER parameter (must match DATABASE_USER), POSTGRES_PASSWORD (must match DATABASE_PASSWORD), RABBITMQ_DEFAULT_USER (must match RABBITMQ_USER), RABBITMQ_DEFAULT_PASS (must match RABBITMQ_PASSWORD).
-4. Start the service with the command `docker compose up --build`.
+4. Start the service with the command `docker compose up`.
 
 ## Available languages
 
