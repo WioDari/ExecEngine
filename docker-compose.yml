@@ -41,5 +41,3 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
-
-

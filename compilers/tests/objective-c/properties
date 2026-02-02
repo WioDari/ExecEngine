@@ -1,5 +1,5 @@
 NAME="Objective-C (GNU GCC v$VERSION)"
-VERSIONS="12.4.0"
+VERSIONS="14.3.0"
 SOURCE_FILE="script.m"
 COMPILED_FILE="script"
 COMPILE_CMD="/usr/local/gcc-$VERSION/bin/gcc -x objective-c $args ?/$SOURCE_FILE -o $COMPILED_FILE"

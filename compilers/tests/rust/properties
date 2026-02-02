@@ -1,5 +1,5 @@
 NAME="Rust (v$VERSION)"
-VERSIONS="1.79.0"
+VERSIONS="1.88.0"
 SOURCE_FILE="script.rs"
 COMPILED_FILE="script"
 COMPILE_CMD="/usr/local/rust-$VERSION/bin/rustc ?/$SOURCE_FILE"

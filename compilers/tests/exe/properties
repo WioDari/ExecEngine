@@ -1,0 +1,6 @@
+NAME="Executable"
+VERSIONS="-"
+SOURCE_FILE="program.out"
+COMPILED_FILE=""
+COMPILE_CMD=""
+RUN_CMD="?/$SOURCE_FILE"

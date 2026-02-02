@@ -21,6 +21,7 @@ from app.db.session import wait_for_db
 from app.core.logger import setup_logging
 from app.services.queue_manager import SubmissionQueueManager
 from create_tables import create_tables_manager
+from app.cron.cron_tasks_init import init_cron_scripts
 import logging
 
 setup_logging()
@@ -41,6 +42,7 @@ submission_queue_manager = SubmissionQueueManager(max_concurrent=settings.MAX_CO
 async def startup_event():
     wait_for_db()
     create_tables_manager()
+    init_cron_scripts()
     logger.info("Starting API...")
     await submission_queue_manager.start()
 

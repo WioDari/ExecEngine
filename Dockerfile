@@ -4,7 +4,7 @@ FROM wiosna97/execengine-compilers:latest AS compilers
 
 RUN apt update && apt install -y python3-pip
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev netcat-openbsd libxml2 libffi8 libssl3 libstdc++6 zlib1g libbz2-1.0 libncursesw6 systemd cgroup-tools && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y build-essential libpq-dev netcat-openbsd libxml2 libffi8 libssl3 libstdc++6 zlib1g libbz2-1.0 libncursesw6 systemd cgroup-tools cron && rm -rf /var/lib/apt/lists/*
 
 RUN apt update && apt install -y systemd libpam-systemd curl libcap-dev libsystemd-dev \
   && cd /lib/systemd/system/sysinit.target.wants/ \
@@ -40,5 +40,6 @@ RUN touch /etc/systemd.environment
 COPY entrypoint.service /etc/systemd/system/
 RUN ln -s /etc/systemd/system/entrypoint.service /etc/systemd/system/multi-user.target.wants/
 RUN systemctl enable entrypoint.service
+RUN systemctl enable cron
 
 ENTRYPOINT ["/sbin/init"]

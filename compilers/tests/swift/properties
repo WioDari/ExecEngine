@@ -1,5 +1,5 @@
 NAME="Swift (v$VERSION)"
-VERSIONS="5.10.1"
+VERSIONS="6.1.2"
 SOURCE_FILE="script.swift"
 COMPILED_FILE="script"
 COMPILE_CMD="/usr/local/swift-$VERSION/bin/swiftc ?/$SOURCE_FILE"

@@ -1,5 +1,5 @@
 NAME="Fortran (GNU GCC v$VERSION)"
-VERSIONS="12.4.0"
+VERSIONS="14.3.0"
 SOURCE_FILE="script.f90"
 COMPILED_FILE="script"
 COMPILE_CMD="/usr/local/gcc-$VERSION/bin/gfortran $args ?/$SOURCE_FILE -o $COMPILED_FILE"

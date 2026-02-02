@@ -1,0 +1,6 @@
+NAME="C++ (CLang v$VERSION)"
+VERSIONS="21.1.2"
+SOURCE_FILE="script.cpp"
+COMPILED_FILE="script"
+COMPILE_CMD="/usr/local/clang-$VERSION/bin/clang++ $args ?/$SOURCE_FILE -o $COMPILED_FILE"
+RUN_CMD="?/$COMPILED_FILE"

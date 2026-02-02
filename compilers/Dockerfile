@@ -3,7 +3,7 @@ FROM buildpack-deps:bookworm
 #GNU-GCC
 #https://ftpmirror.gnu.org/gnu/gcc/
 ENV GCC_VERSIONS \
-  12.4.0
+  14.3.0
 RUN set -xe && \
   for VERSION in $GCC_VERSIONS; do \
     curl -fSsl -k "https://mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-$VERSION/gcc-$VERSION.tar.gz" -o /tmp/gcc-$VERSION.tar.gz && \
@@ -84,7 +84,7 @@ RUN set -xe && \
 #PHP
 #https://www.php.net/distributions/
 ENV PHP_VERSIONS \
-  8.3.8
+  8.4.10
 RUN set -xe && \
   apt-get update && \
   apt-get install -y bison re2c && \
@@ -144,7 +144,7 @@ RUN set -xe && \
 #Ruby
 #https://cache.ruby-lang.org/pub/ruby/
 ENV RUBY_VERSIONS \
-  3.3.3
+  3.4.5
 RUN set -xe && \
   for VERSION in $RUBY_VERSIONS; do \
     curl -fSsl "https://cache.ruby-lang.org/pub/ruby/${VERSION%.*}/ruby-$VERSION.tar.gz" -o /tmp/ruby-$VERSION.tar.gz && \
@@ -252,7 +252,7 @@ RUN set -xe && \
 #Swift
 #https://github.com/swiftlang/swift/releases/
 ENV SWIFT_VERSIONS \
-  5.10.1
+  6.1.2
 RUN set -xe && \
   for VERSION in $SWIFT_VERSIONS; do \
     curl -fSsL "https://download.swift.org/swift-$VERSION-release/debian12/swift-$VERSION-RELEASE/swift-$VERSION-RELEASE-debian12.tar.gz" -o /tmp/swift-$VERSION.tar.gz && \
@@ -461,8 +461,42 @@ RUN set -xe && \
     npm install -g typescript@$VERSION; \
     rm -rf /tmp/*; \
   done
+  
+#CLang
+#https://clang.llvm.org
+ENV CLANG_VERSIONS \
+  21.1.2
+RUN set -xe && \
+  apt-get update && apt-get install -y --no-install-recommends \
+    ninja-build cmake ccache lld python3 python3-distutils python3-pip pkg-config && \
+  rm -rf /var/lib/apt/lists/* && \
+  for VERSION in $CLANG_VERSIONS; do \
+    curl -fSsL "https://github.com/llvm/llvm-project/releases/download/llvmorg-$VERSION/llvm-project-$VERSION.src.tar.xz" -o /tmp/clang-$VERSION.tar.xz && \
+    mkdir /tmp/clang-$VERSION && \
+    tar -xf /tmp/clang-$VERSION.tar.xz -C /tmp/clang-$VERSION --strip-components=1 && \
+    rm /tmp/clang-$VERSION.tar.xz && \
+    cd /tmp/clang-$VERSION && \
+	mkdir build && cd build && \
+    cmake -G Ninja ../llvm \
+      -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DLLVM_TARGETS_TO_BUILD="X86" \
+      -DLLVM_INCLUDE_TESTS=OFF \
+      -DLLVM_INCLUDE_EXAMPLES=OFF \
+      -DLLVM_INCLUDE_BENCHMARKS=OFF \
+      -DLLVM_BUILD_TOOLS=OFF \
+      -DLLVM_ENABLE_ASSERTIONS=OFF \
+      -DLLVM_OPTIMIZED_TABLEGEN=ON \
+      -DLLVM_USE_LINKER=lld \
+      -DCMAKE_INSTALL_PREFIX=/usr/local/clang-$VERSION \
+      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
+    ninja -j3 && \
+    ninja install && \
+    rm -rf /tmp/*; \
+  done
 
 COPY tests /usr/local/tests
 
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="1.0.0"
+LABEL version="1.1.0"

@@ -1,5 +1,5 @@
 NAME="C (GNU GCC v$VERSION)"
-VERSIONS="12.4.0"
+VERSIONS="14.3.0"
 SOURCE_FILE="script.c"
 COMPILED_FILE="script"
 COMPILE_CMD="/usr/local/gcc-$VERSION/bin/gcc $args ?/$SOURCE_FILE -o $COMPILED_FILE"

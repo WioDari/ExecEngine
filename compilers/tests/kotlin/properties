@@ -1,5 +1,5 @@
 NAME="Kotlin (v$VERSION)"
-VERSIONS="2.0.0"
+VERSIONS="2.2.0"
 SOURCE_FILE="script.kt"
 COMPILED_FILE="ScriptKt.class"
 COMPILE_CMD="/usr/local/kotlin-$VERSION/kotlinc/bin/kotlinc ?/$SOURCE_FILE"
