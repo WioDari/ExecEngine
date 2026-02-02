@@ -64,7 +64,7 @@ async def process_submission(submission: SubmissionModel, db: Session):
         if proc.returncode != 0:
             raise RuntimeError(f"isolate init failed: {stderr_init.decode()}")
 
-        work_dir = stdout_init.decode().strip() or f"/var/local/lib/isolate/{box_id}"
+        work_dir = stdout_init.decode().strip() or f"/var/lib/isolate/{box_id}"
         sandbox_dir = os.path.join(work_dir, "box")
         tmp_dir = os.path.join(work_dir, "tmp")
 
@@ -81,7 +81,7 @@ async def process_submission(submission: SubmissionModel, db: Session):
 
         #Unzip additional files
         if submission.additional_files:
-            archive_path = f"/var/local/lib/isolate/{box_id}/box/archive.zip"
+            archive_path = f"{work_dir}/box/archive.zip"
             with open(archive_path, 'wb') as f_unzip: f_unzip.write(base64.b64decode(submission.additional_files))
             
             unzip_cmd = (
@@ -109,11 +109,11 @@ async def process_submission(submission: SubmissionModel, db: Session):
             if submission.compiler_options: compile_cmd = compile_cmd.replace("$args", base64.b64decode(submission.compiler_options).decode('utf-8'))
             iso_compile_cmd = (
                 f"isolate --cg --box-id={box_id} -p "
-                f"--time=10 "
+                f"--time={settings.MAX_TIME_LIMIT} "
                 f"--wall-time={settings.MAX_WALL_TIME_LIMIT} "
+                f"-p -n 0 "
                 f'-E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
-                f"-E HOME=/tmp "
-                f"-d /tmp:rw "
+                f"-E HOME=/tmp --dir=/etc:noexec "
                 f"--stderr=compile_stderr.txt "
                 f"--stdout=compile_stdout.txt "
                 f"--meta=meta.txt "
@@ -188,16 +188,16 @@ async def process_submission(submission: SubmissionModel, db: Session):
             f"--extra-time={submission.extra_time or 0.5} "
             f"--wall-time={submission.wall_time_limit or 3} "
             f"--cg-mem={submission.memory_limit or 65536} "
-            f"--fsize={submission.max_file_size or 1024} "
-            f"--processes=8 "
+            f"-p -n 0 "
             f'-E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" '
-            f"-E HOME=/tmp "
+            f"-E HOME=/tmp --dir=/etc:noexec "
             f"--stdin=prog.in "
             f"--stdout=prog.out "
             f"--stderr=prog.err "
             f"--meta=meta.txt "
             f"--run -- /bin/bash -c '{run_cmd}'"
         )
+        print(iso_run_cmd)
         start_time = datetime.utcnow()
         run_process = await asyncio.create_subprocess_shell(
             iso_run_cmd,
@@ -238,6 +238,7 @@ async def process_submission(submission: SubmissionModel, db: Session):
         if os.path.exists(meta_file):
             with open(meta_file, 'r') as fm:
                 for line in fm:
+                    print(line)
                     line = line.strip()
                     if not line:
                         continue
@@ -266,19 +267,25 @@ async def process_submission(submission: SubmissionModel, db: Session):
         submission.time = time_used_ms
         submission.wall_time = wall_time_ms
         submission.memory = min(memory_used_kb_rss, memory_used_kb_cg)
-        submission.stdout = base64.b64encode(stdout_data.encode()).decode()
-        submission.stderr = base64.b64encode(stderr_data.encode()).decode()
+        submission.stdout = base64.b64encode(stdout_data.encode()).decode() if len(stdout_data.strip()) != 0 else None
+        submission.stderr = base64.b64encode(stderr_data.encode()).decode() if len(stderr_data.strip()) != 0 else None
         submission.exit_code = exit_code
         submission.exit_signal = exit_signal
         submission.finished_at = datetime.utcnow()
 
         #Status
         if run_process.returncode == 0:
-            if expected_output and b64_equal(base64.b64encode(strip_text(stdout_data).encode()),
-                                             base64.b64encode(strip_text(expected_output).encode())):
-                submission.status_id = 3
+            if expected_output is not None:
+                if b64_equal(base64.b64encode(strip_text(stdout_data).encode()),
+                             base64.b64encode(strip_text(expected_output).encode())):
+                    submission.status_id = 3
+                else:
+                    submission.status_id = 4
             else:
-                submission.status_id = 4
+                if stdout_data == "": 
+                    submission.status_id = 3
+                else:
+                    submission.status_id = 4
         else:
             if status == "TO":
                 submission.status_id = 5

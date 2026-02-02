@@ -115,7 +115,7 @@ async def get_batch_submissions(
         BatchModel.batch_token == batch_token
     ).first()
     if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found.")
+        raise HTTPException(status_code=404, detail="Batch submission not found.")
 
     submissions = db.query(SubmissionModel).filter(
         SubmissionModel.batch_id == batch.id,
@@ -146,3 +146,30 @@ async def get_batch_submissions(
         ))
 
     return response
+
+@router.delete("/{batch_token}")
+async def delete_batch_submission(
+    batch_token: str,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    if not getattr(current_user, "privileged_user", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only privileged users can delete submissions."
+        )
+    
+    batch = db.query(BatchModel).filter(
+        BatchModel.batch_token == batch_token
+    ).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch submission not found.")
+    
+    submissions_count = db.query(SubmissionModel).filter(
+        SubmissionModel.batch_id == batch.id
+    ).delete()
+    
+    db.delete(batch)
+    db.commit()
+    return {"message" : f"Batch submission {batch_token} removed successfully!",
+            "submissions_count" : submissions_count}

@@ -6,6 +6,8 @@ from app.models.schemas import SubmissionCreate, SubmissionResponse
 from app.models.orm_models import SubmissionModel, LanguageModel
 from app.db.session import get_db
 import uuid
+import asyncio
+import pickle
 from datetime import datetime
 from app.core.dependencies import get_current_user
 from app.models.orm_models import UserModel
@@ -55,13 +57,14 @@ async def create_submission(
     db.commit()
     db.refresh(db_submission)
     
+    from main import submission_queue_manager
+    
     if wait:
         db_submission.status_id = 2
         db.commit()
         await process_submission(db_submission, db)
         db.refresh(db_submission)
     else:
-        from main import submission_queue_manager
         await submission_queue_manager.enqueue_submission(db_submission, db)
 
     return SubmissionResponse(
@@ -117,3 +120,26 @@ async def get_submission(
         command_line_args=submission.command_line_args,
         additional_files=submission.additional_files
     )
+
+
+@router.delete("/{token}")
+async def delete_submission(
+    token: str,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    if not getattr(current_user, "privileged_user", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only privileged users can delete submissions."
+        )
+    
+    submission = db.query(SubmissionModel).filter(
+        SubmissionModel.token == token
+    ).first()
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    
+    db.delete(submission)
+    db.commit()
+    return {"message" : f"Submission {token} removed successfully!"}

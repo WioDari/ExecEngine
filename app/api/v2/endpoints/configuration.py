@@ -1,15 +1,23 @@
 # app/api/v2/endpoints/configuration.py
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.models.schemas import ServerConfiguration, SoftwareConfiguration
 from app.core.config import settings
+from app.core.dependencies import get_current_user
+from app.models.orm_models import UserModel
 import asyncio
 import subprocess
 
 router = APIRouter()
 
 @router.get("/hardware", response_model=ServerConfiguration, status_code=status.HTTP_200_OK)
-async def hardware_info():
+async def hardware_info(current_user: UserModel = Depends(get_current_user)):
+    if settings.PROTECTED_HARDWARE_CONFIGURATION:
+        if not getattr(current_user, "privileged_user", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only privileged users can see information about server configuration."
+            )
     try:
         cmd = subprocess.run(['lscpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stdout
         lines = cmd.split('\n')
@@ -25,7 +33,13 @@ async def hardware_info():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/software", response_model=SoftwareConfiguration, status_code=status.HTTP_200_OK)
-async def software_info():
+async def software_info(current_user: UserModel = Depends(get_current_user)):
+    if settings.PROTECTED_SOFTWARE_CONFIGURATION:
+        if not getattr(current_user, "privileged_user", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only privileged users can see information about API-service configuration."
+            )
     try:
         software_configs = SoftwareConfiguration(
             max_concurent_submissions=settings.MAX_CONCURRENT_SUBMISSIONS,

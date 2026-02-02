@@ -25,3 +25,19 @@ def register_user(user: UserCreate, db: Session = Depends(get_db), current_user:
         raise HTTPException(status_code=400, detail="Email already registered.")
     new_user = create_user(db, user=user)
     return new_user
+
+@router.delete("/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
+    if not getattr(current_user, "privileged_user", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only privileged users can delete other users."
+        )
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    db.delete(user)
+    db.commit()
+    
+    return {"message" : f"User {user.username} removed successfully!"}

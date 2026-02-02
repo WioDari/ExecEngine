@@ -46,20 +46,21 @@ class SubmissionQueueManager:
             await self.connection.close()
             logger.info("SubmissionQueueManager stopped.")
 
-    async def enqueue_submission(self, submission: SubmissionModel, db):
+    async def enqueue_submission(self, submission: SubmissionModel, db, reply_queue=None, correlation_id=None):
         try:
             payload = {
                 "submission_token": submission.token
             }
             body = pickle.dumps(payload)
 
-            await self.channel.default_exchange.publish(
-                Message(
-                    body,
-                    delivery_mode=DeliveryMode.PERSISTENT
-                ),
-                routing_key=self.queue_name
+            msg = Message(
+                body,
+                delivery_mode=DeliveryMode.PERSISTENT,
+                reply_to=reply_queue.name if reply_queue else None,
+                correlation_id=correlation_id,
             )
+
+            await self.channel.default_exchange.publish(msg, routing_key=self.queue_name)
             logger.info(f"Submission {submission.token} enqueued to RabbitMQ.")
 
         except Exception as e:
@@ -88,7 +89,25 @@ class SubmissionQueueManager:
                         db.commit()
                         logger.info(f"Submission {submission.token} processing completed.")
                         self.completed_tasks += 1
-                        print(self.completed_tasks)
+                        
+                        if message.reply_to:
+                            result = {
+                                "token": submission.token,
+                                "status_id": submission.status_id,
+                                "stdout": submission.stdout,
+                                "stderr": submission.stderr,
+                                "compile_output": submission.compile_output,
+                            }
+                            response_body = pickle.dumps(result)
+
+                            await self.channel.default_exchange.publish(
+                                Message(
+                                    response_body,
+                                    correlation_id=message.correlation_id
+                                ),
+                                routing_key=message.reply_to
+                            )
+
                     finally:
                         db.close()
 
