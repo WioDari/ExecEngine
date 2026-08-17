@@ -27,8 +27,8 @@ RUN set -xe && \
 #Python
 #https://www.python.org/ftp/python/
 ENV PYTHON_VERSIONS \
-  2.7.17 \
-  3.13.5
+  2.7.18 \
+  3.13.12
 RUN set -xe && \
   for VERSION in $PYTHON_VERSIONS; do \
     curl -fSsl "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz" -o /tmp/python-$VERSION.tar.xz && \
@@ -48,11 +48,11 @@ RUN set -xe && \
 #https://www.pypy.org/
 #Python versions: 2.7 and 3.11
 ENV PYPY_VERSION 7.3.20
-ENV PYTHON_VERSIONS \
-  3.11 \
-  2.7
+ENV PYPY_PYTHON_VERSIONS \
+  2.7 \
+  3.11
 RUN set -xe && \
-  for VERSION in $PYTHON_VERSIONS; do \
+  for VERSION in $PYPY_PYTHON_VERSIONS; do \
     curl -fSsl "https://downloads.python.org/pypy/pypy$VERSION-v$PYPY_VERSION-linux64.tar.bz2" -o /tmp/pypy$VERSION.tar.bz2 && \
     mkdir /usr/local/pypy$VERSION && \
     tar -xf /tmp/pypy$VERSION.tar.bz2 -C /usr/local/pypy$VERSION --strip-components=1 && \
@@ -106,7 +106,7 @@ RUN set -xe && \
 #Bash
 #https://ftp.gnu.org/gnu/bash/
 ENV BASH_VERSIONS \
-  5.2.21
+  5.3
 RUN set -xe && \
   for VERSION in $BASH_VERSIONS; do \
     curl -fSsl "https://www.mirrorservice.org/sites/ftp.gnu.org/gnu/bash/bash-$VERSION.tar.gz" -o /tmp/bash-$VERSION.tar.gz && \
@@ -214,7 +214,7 @@ RUN set -xe && \
     curl -fSsl "https://dl.google.com/go/go$VERSION.linux-amd64.tar.gz" -o /tmp/golang-$VERSION.tar.gz && \
     mkdir /usr/local/go-$VERSION && \
     tar -xf /tmp/golang-$VERSION.tar.gz -C /usr/local/go-$VERSION --strip-components=1 && \
-    ln -s /usr/local/golang-$VERSION/bin/go /usr/bin/go && \
+    ln -s /usr/local/go-$VERSION/bin/go /usr/bin/go && \
     rm -rf /tmp/*; \
   done
 
@@ -264,7 +264,7 @@ RUN set -xe && \
 #.NET SDK (F#, Visual Basic, C#)
 #https://dotnet.microsoft.com/en-us/download
 ENV DOTNET_VERSIONS \
-  8.0.412
+  8.0.422
 RUN set -xe && \
   for VERSION in $DOTNET_VERSIONS; do \
     curl -fSsL "https://builds.dotnet.microsoft.com/dotnet/Sdk/$VERSION/dotnet-sdk-$VERSION-linux-x64.tar.gz" -o /tmp/dotnet-$VERSION.tar.gz && \
@@ -298,7 +298,7 @@ RUN set -xe && \
 #Scala
 #https://github.com/scala/scala3
 ENV SCALA_VERSIONS \
-  3.7.1
+  3.8.2
 RUN set -xe && \
   for VERSION in $SCALA_VERSIONS; do \
     curl -fSsL "https://github.com/scala/scala3/releases/download/$VERSION/scala3-$VERSION-x86_64-pc-linux.tar.gz" -o /tmp/scala-$VERSION.tar.gz && \
@@ -347,20 +347,20 @@ RUN set -xe && \
     rm /tmp/lua-$VERSION.tar.gz && \
     cd /usr/local/lua-$VERSION && \
     make -j$(nproc) && \
-    make -j$(nproc) install && \
+    make -j$(nproc) install INSTALL_TOP=/usr/local/lua-$VERSION && \
     rm -rf /tmp/*; \
   done
 
 #Haskell (GHC)
 #https://downloads.haskell.org/~ghc/
 ENV HASKELL_VERSIONS \
-  9.12.2
+  9.14.1
 RUN set -xe && \
   apt-get update && \
   apt-get install -y --no-install-recommends libgmp-dev libtinfo5 && \
   rm -rf /var/lib/apt/lists/* && \
   for VERSION in $HASKELL_VERSIONS; do \
-    curl -fSsL "https://downloads.haskell.org/~ghc/$VERSION/ghc-$VERSION-x86_64-deb10-linux.tar.gz" -o /tmp/haskell-$VERSION.tar.gz && \
+    curl -fSsL "https://downloads.haskell.org/~ghc/$VERSION/ghc-$VERSION-x86_64-deb12-linux.tar.gz" -o /tmp/haskell-$VERSION.tar.gz && \
     mkdir /tmp/haskell-$VERSION && \
     tar -xf /tmp/haskell-$VERSION.tar.gz -C /tmp/haskell-$VERSION --strip-components=1 && \
     rm /tmp/haskell-$VERSION.tar.gz && \
@@ -450,15 +450,18 @@ RUN set -xe && \
 
 #TypeScript
 #https://github.com/microsoft/TypeScript/releases
+#Use the pinned Node.js build above instead of installing an unpinned system Node.js.
 ENV TYPESCRIPT_VERSIONS \
   5.9.2
+ENV TYPESCRIPT_NODE_VERSION \
+  21.7.3
 RUN set -xe && \
-  curl -fSsL "https://deb.nodesource.com/setup_12.x" | bash - && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends nodejs npm && \
-  rm -rf /var/lib/apt/lists/* && \
   for VERSION in $TYPESCRIPT_VERSIONS; do \
-    npm install -g typescript@$VERSION; \
+    PATH="/usr/local/node-$TYPESCRIPT_NODE_VERSION/bin:$PATH" \
+      /usr/local/node-$TYPESCRIPT_NODE_VERSION/bin/npm install \
+        --global \
+        --prefix /usr/local/typescript-$VERSION \
+        typescript@$VERSION; \
     rm -rf /tmp/*; \
   done
   
@@ -496,7 +499,62 @@ RUN set -xe && \
     rm -rf /tmp/*; \
   done
 
+#Mono (WineHQ Framework Mono)
+#https://gitlab.winehq.org/mono/mono
+ENV MONO_VERSIONS \
+  6.14.1
+RUN set -xe && \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    gettext \
+    libtool \
+    libtool-bin \
+    pkg-config \
+    python3 \
+    unzip \
+    zlib1g-dev; \
+  rm -rf /var/lib/apt/lists/*; \
+  for VERSION in $MONO_VERSIONS; do \
+    curl -fSsL "https://dl.winehq.org/mono/sources/mono/mono-${VERSION}.tar.xz" -o /tmp/mono-${VERSION}.tar.xz; \
+	mkdir /tmp/mono-${VERSION}; \
+	tar -xf /tmp/mono-${VERSION}.tar.xz -C /tmp/mono-${VERSION} --strip-components=1; \
+    rm -f /tmp/mono-${VERSION}.tar.xz; \
+    cd /tmp/mono-${VERSION}; \
+    ./configure \
+      --prefix="/usr/local/mono-${VERSION}" \
+      --disable-nls \
+      --disable-silent-rules; \
+    make -j"$(nproc)"; \
+    make -j"$(nproc)" install; \
+	"/usr/local/mono-${VERSION}/bin/cert-sync" /etc/ssl/certs/ca-certificates.crt || true; \
+	rm -rf /tmp/*; \
+  done
+
+ENV PASCALABC_VERSION \
+  3.11.1
+RUN set -uxe && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends unzip && \
+  rm -rf /var/lib/apt/lists/* && \
+  curl -fSsL "https://pascalabc.net/downloads/PABCNETC.zip" -o /tmp/pascalabc-$PASCALABC_VERSION.zip && \
+  mkdir -p /usr/local/pascalabc-$PASCALABC_VERSION && \
+  unzip -d /usr/local/pascalabc-$PASCALABC_VERSION /tmp/pascalabc-$PASCALABC_VERSION.zip || test $? -eq 1 && \
+  rm -rf /tmp/*
+
 COPY tests /usr/local/tests
 
+ENV LD_LIBRARY_PATH="/usr/local/gcc-14.3.0/lib64:/usr/local/gcc-14.3.0/lib"
+ENV LIBRARY_PATH="/usr/local/gcc-14.3.0/lib64:/usr/local/gcc-14.3.0/lib"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libobjc-12-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 LABEL maintaner="Danila Fateenkov, wiosnagd97@gmail.com"
-LABEL version="1.1.0"
+LABEL version="1.2.1"

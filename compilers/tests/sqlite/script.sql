@@ -12,4 +12,5 @@ SELECT
 FROM view_summary vs
 LEFT JOIN movie m ON vs.movie_id = m.id
 LEFT JOIN season s ON vs.season_id = s.id
-LEFT JOIN tv_show ts ON s.tv_show_id = ts.id;
+LEFT JOIN tv_show ts ON s.tv_show_id = ts.id
+LIMIT 10;

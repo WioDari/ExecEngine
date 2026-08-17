@@ -1,0 +1,6 @@
+NAME="PascalABC.NET (v$VERSION)"
+VERSIONS="3.11.1"
+SOURCE_FILE="script.pas"
+COMPILED_FILE="script.exe"
+COMPILE_CMD="/usr/local/mono-6.14.1/bin/mono /usr/local/pascalabc-$VERSION/pabcnetc.exe $args ?/$SOURCE_FILE"
+RUN_CMD="/usr/local/mono-6.14.1/bin/mono ?/$COMPILED_FILE"

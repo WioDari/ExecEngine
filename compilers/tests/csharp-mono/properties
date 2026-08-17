@@ -1,0 +1,6 @@
+NAME="C# (Mono v$VERSION)"
+VERSIONS="6.14.1"
+SOURCE_FILE="script.cs"
+COMPILED_FILE="script.exe"
+COMPILE_CMD="/usr/local/mono-$VERSION/bin/mcs $args ?/$SOURCE_FILE -out:$COMPILED_FILE"
+RUN_CMD="/usr/local/mono-$VERSION/bin/mono ?/$COMPILED_FILE"

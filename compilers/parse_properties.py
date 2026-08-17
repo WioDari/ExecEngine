@@ -1,109 +1,112 @@
-import os
-import json
+#!/usr/bin/env python3
 
-def parse_properties(filepath):
-    props = {}
-    with open(filepath, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#') or '=' not in line:
-                continue
-            key, value = line.split('=', 1)
-            props[key.strip()] = value.strip().strip('"')
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TESTS_DIR = PROJECT_ROOT / "compilers" / "tests"
+REGISTRY_PATH = PROJECT_ROOT / "config" / "language_registry.json"
+OUTPUT_PATH = PROJECT_ROOT / "config" / "languages.json"
+
+
+def parse_properties(filepath: Path):
+    props: dict[str, str] = {}
+    for raw_line in filepath.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        props[key.strip()] = value.strip().strip('"')
     return props
 
-def expand_version_syntax(version, syntax):
-    if '${VERSION%%.*}' in syntax:
-        major = version.split('.')[0]
-        syntax = syntax.replace('${VERSION%%.*}', major)
-    syntax = syntax.replace('$VERSION', version)
-    return syntax
 
-def process_language(dir_path):
-    props_file = os.path.join(dir_path, 'properties')
-    if not os.path.exists(props_file):
-        print(f"Skipped: properties file not found in {dir_path}")
-        return []
+def load_registry(registry_path: Path = REGISTRY_PATH):
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if not isinstance(registry, list):
+        raise ValueError("Language registry must be a JSON array")
+    return registry
 
-    props = parse_properties(props_file)
-    
-    name_template = props.get('NAME', '')
-    versions_str = props.get('VERSIONS', '')
-    source_file = props.get('SOURCE_FILE', '')
-    compiled_file = props.get('COMPILED_FILE', '')
-    compile_cmd = props.get('COMPILE_CMD', '').strip()
-    run_cmd = props.get('RUN_CMD', '').strip()
 
-    versions = versions_str.split() if versions_str else ['']
+def expand_version_syntax(version: str, value: str):
+    major = version.split(".", 1)[0]
+    return value.replace("${VERSION%%.*}", major).replace("$VERSION", version)
 
-    result = []
-    for version in versions:
-        name = name_template.replace('$VERSION', version) if version else name_template
 
-        src_file = source_file
-        cmp_file = compiled_file
+def expand_property(value: str, version: str, source_file: str, compiled_file: str):
+    expanded = expand_version_syntax(version, value)
+    expanded = expanded.replace("$SOURCE_FILE", source_file)
+    expanded = expanded.replace("$COMPILED_FILE", compiled_file)
+    return expanded
 
-        if '$VERSION' in src_file:
-            src_file = src_file.replace('$VERSION', version)
-        elif '${VERSION%%.*}' in src_file:
-            major = version.split('.')[0]
-            src_file = src_file.replace('${VERSION%%.*}', major)
 
-        if '$VERSION' in cmp_file:
-            cmp_file = cmp_file.replace('$VERSION', version)
-        elif '${VERSION%%.*}' in cmp_file:
-            major = version.split('.')[0]
-            cmp_file = cmp_file.replace('${VERSION%%.*}', major)
+def build_language(
+    registry_entry: dict[str, Any],
+    tests_dir: Path = TESTS_DIR,
+):
+    config_name = registry_entry["config"]
+    version = registry_entry["version"]
+    properties_path = tests_dir / config_name / "properties"
+    if not properties_path.is_file():
+        raise ValueError(f"Properties file not found for registry config: {config_name}")
 
-        expanded_compile_cmd = compile_cmd
-        expanded_run_cmd = run_cmd
+    props = parse_properties(properties_path)
+    versions = props.get("VERSIONS", "").split()
+    if version not in versions:
+        raise ValueError(
+            f"Registry version {version!r} is not declared by {config_name}: {versions!r}"
+        )
 
-        if expanded_compile_cmd:
-            expanded_compile_cmd = expand_version_syntax(version, expanded_compile_cmd)
-            expanded_compile_cmd = expanded_compile_cmd.replace('$SOURCE_FILE', src_file)
-            if '$COMPILED_FILE' in expanded_compile_cmd:
-                expanded_compile_cmd = expanded_compile_cmd.replace('$COMPILED_FILE', cmp_file)
+    source_file = expand_version_syntax(version, props.get("SOURCE_FILE", ""))
+    compiled_file = expand_version_syntax(version, props.get("COMPILED_FILE", ""))
+    compile_template = props.get("COMPILE_CMD", "").strip()
+    run_template = props.get("RUN_CMD", "").strip()
 
-        expanded_run_cmd = expand_version_syntax(version, expanded_run_cmd)
-        expanded_run_cmd = expanded_run_cmd.replace('$SOURCE_FILE', src_file)
-        if '$COMPILED_FILE' in expanded_run_cmd:
-            expanded_run_cmd = expanded_run_cmd.replace('$COMPILED_FILE', cmp_file)
+    return {
+        "NAME": expand_version_syntax(version, props.get("NAME", "")),
+        "VERSION": version,
+        "SOURCE_FILE": source_file,
+        "COMPILED_FILE": compiled_file or None,
+        "COMPILE_CMD": (
+            expand_property(compile_template, version, source_file, compiled_file)
+            if compile_template
+            else None
+        ),
+        "RUN_CMD": expand_property(run_template, version, source_file, compiled_file),
+        "id": registry_entry["id"],
+        "slug": registry_entry["slug"],
+        "pool": registry_entry["pool"],
+        "enabled": registry_entry["enabled"],
+    }
 
-        lang_obj = {
-            "NAME": name,
-            "VERSION": version,
-            "SOURCE_FILE": src_file,
-            "COMPILED_FILE": cmp_file if cmp_file else None,
-            "COMPILE_CMD": expanded_compile_cmd if expanded_compile_cmd else None,
-            "RUN_CMD": expanded_run_cmd
-        }
-        result.append(lang_obj)
-    
-    return result
+
+def generate_languages(
+    registry_path: Path = REGISTRY_PATH,
+    tests_dir: Path = TESTS_DIR,
+):
+    registry = load_registry(registry_path)
+    languages = [build_language(entry, tests_dir) for entry in registry]
+    return sorted(languages, key=lambda language: language["id"])
+
+
+def write_languages(
+    languages: list[dict[str, Any]],
+    output_path: Path = OUTPUT_PATH,
+):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    rendered = json.dumps(languages, indent=2, ensure_ascii=False) + "\n"
+    output_path.write_text(rendered, encoding="utf-8")
+
 
 def main():
-    tests_dir = 'tests'
-    output_file = 'languages.json'
+    languages = generate_languages()
+    write_languages(languages)
+    print(f"Success: {len(languages)} language versions written to {OUTPUT_PATH}")
+    return 0
 
-    if not os.path.exists(tests_dir):
-        print(f"Error: directory '{tests_dir}' not found.")
-        return
-    languages = []
-    for entry in os.listdir(tests_dir):
-        dir_path = os.path.join(tests_dir, entry)
-        if not os.path.isdir(dir_path):
-            continue
-        if os.path.exists(os.path.join(dir_path, '.skip')):
-            print(f"Skipped: {entry} (has .skip)")
-            continue
-        langs = process_language(dir_path)
-        languages.extend(langs)
-    languages.sort(key=lambda x: x["NAME"])
-    for index, lang in enumerate(languages, start=1):
-        lang["id"] = index
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(languages, f, indent=2, ensure_ascii=False)
-    print(f"Success: {len(languages)} language versions written to {output_file}\n")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    raise SystemExit(main())

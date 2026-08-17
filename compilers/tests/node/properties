@@ -1,4 +1,4 @@
-NAME="JavaScript (NodeJS v$VERSION)"
+NAME="JavaScript (Node.js v$VERSION)"
 VERSIONS="21.7.3"
 SOURCE_FILE="script.js"
 COMPILED_FILE=""
