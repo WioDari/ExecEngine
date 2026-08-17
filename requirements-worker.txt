@@ -1,0 +1,2 @@
+-r requirements-base.txt
+aio-pika==9.5.5

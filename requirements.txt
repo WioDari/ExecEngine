@@ -1,14 +1,7 @@
-fastapi==0.95.0
-uvicorn[standard]==0.22.0
-pydantic==1.10.7
-email-validator==1.3.1
-psycopg2-binary==2.9.6
-python-dotenv==1.0.0
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-SQLAlchemy==2.0.20
-alembic==1.11.1
-aio-pika==9.5.5
-cryptography>=3.3.1
-bcrypt==4.0.1
-python-crontab>=3.0.0
+# Development/test aggregate. Runtime images install only their role file.
+-r requirements-api.txt
+-r requirements-worker.txt
+-r requirements-callback.txt
+-r requirements-maintenance.txt
+-r requirements-migrate.txt
+-r requirements-bootstrap.txt

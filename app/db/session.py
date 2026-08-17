@@ -1,111 +1,46 @@
-# app/db/session.py
+import logging
+import time
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
-from app.core.config import settings
-from app.models import orm_models
-from app.models import schemas
-from pathlib import Path
-import time
-import logging
-import json
 
-logging.basicConfig(level=logging.INFO)
+from app.db.base import Base
+from app.db.database import database_url_from_ini
+
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = f"postgresql://{settings.DATABASE_USER}:{settings.DATABASE_PASSWORD}@{settings.DATABASE_HOST}/{settings.DATABASE_NAME}"
-
-engine = create_engine(DATABASE_URL, echo=False)
+DATABASE_URL = database_url_from_ini()
+engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
-def create_tables_manager():
-    print("[INFO] Creating tables for Database")
-    Base.metadata.create_all(bind=engine)
-    print("[INFO] All tables created successfully")
+def wait_for_db(
+    *,
+    max_retries: int | None = None,
+    retry_interval: float | None = None,
+):
+    if max_retries is None or retry_interval is None:
+        from app.core.config import settings
 
+        max_retries = settings.DB_MAX_RETRIES if max_retries is None else max_retries
+        retry_interval = settings.DB_MAX_TIMEOUT if retry_interval is None else retry_interval
 
-def load_json(file_name):
-    base_dir = Path(__file__).resolve().parent
-    file_path = base_dir / file_name
-    with open(file_path, "r", encoding="UTF-8") as f:
-        return json.load(f)
-
-def add_data_to_db():
-    with SessionLocal() as session:
-        """session.query(orm_models.StatusModel).delete()
-        session.commit()
-        session.query(orm_models.LanguageModel).delete()
-        session.commit()
-        session.query(orm_models.SubmissionModel).delete()
-        session.commit()"""
-        logger.info("Creating privileged user")
-        if session.query(orm_models.UserModel).filter_by(username=settings.ADMIN_USERNAME).first() is None:
-            from app.services.user_service import create_user
-            admin_user = schemas.UserCreate(
-                username = settings.ADMIN_USERNAME,
-                password = settings.ADMIN_PASSWORD,
-                email = settings.ADMIN_EMAIL,
-                full_name = settings.ADMIN_NAME,
-                privileged_user = True
-            )
-            new_user = create_user(session, user=admin_user)
-        logger.info("Privileged user created successfully!")
-        logger.info("Importing statuses and languages")
-        statuses_data = load_json("statuses.json")
-        languages_data = load_json("languages.json")
-        for status_data in statuses_data:
-            if session.query(orm_models.StatusModel).filter_by(id=status_data['id']).first():
-                continue
-            status = orm_models.StatusModel(
-                id = status_data['id'],
-                status_code = status_data['status_code'],
-                status_full = status_data['status_full']
-            )
-            session.add(status)
-        for language_data in languages_data:
-            if session.query(orm_models.LanguageModel).filter_by(id=language_data['id']).first():
-                continue
-            language_data['NAME'] = language_data['NAME'].replace("$VERSION",language_data['VERSION'])
-            if language_data['COMPILE_CMD']:
-                language_data['COMPILE_CMD'] = language_data['COMPILE_CMD'].replace("$COMPILED_FILE",language_data['COMPILED_FILE'])
-                language_data['COMPILE_CMD'] = language_data['COMPILE_CMD'].replace("$SOURCE_FILE",language_data['SOURCE_FILE'])
-                language_data['COMPILE_CMD'] = language_data['COMPILE_CMD'].replace("$VERSION",language_data['VERSION'])
-                language_data['RUN_CMD'] = language_data['RUN_CMD'].replace("$COMPILED_FILE",language_data['COMPILED_FILE'])
-            language_data['RUN_CMD'] = language_data['RUN_CMD'].replace("$SOURCE_FILE",language_data['SOURCE_FILE'])
-            
-            language = orm_models.LanguageModel(
-                id = language_data['id'],
-                name = language_data['NAME'],
-                version = language_data['VERSION'],
-                source_file = language_data['SOURCE_FILE'],
-                compiled_file = language_data['COMPILED_FILE'],
-                compile_cmd = language_data['COMPILE_CMD'],
-                run_cmd = language_data['RUN_CMD']
-            )
-            session.add(language)
-        session.commit()
-        logger.info("Data imported successfully")
-
-def wait_for_db():
-    max_retries=settings.DB_MAX_RETRIES
-    timeout=settings.DB_MAX_TIMEOUT
-    
     for attempt in range(max_retries):
         try:
             with engine.connect() as connection:
-                logger.info("Database is ready!")
-                create_tables_manager()
-                add_data_to_db()
-                return
-        except OperationalError:
-            logger.warning(f"Database is not ready, retrying {attempt+1}/{max_retries}...")
-            time.sleep(timeout)
-            
-    logger.error("Database connection failed.")
-    raise Exception("Database is not ready.")
+                connection.execute(text("SELECT 1"))
+            logger.info("Database is ready")
+            return
+        except OperationalError as exc:
+            logger.warning(
+                "Database is not ready, retrying %s/%s: %s",
+                attempt + 1,
+                max_retries,
+                exc,
+            )
+            time.sleep(retry_interval)
+
+    raise RuntimeError("Database is not ready")
 
 def get_db():
     db = SessionLocal()

@@ -1,27 +1,16 @@
-# app/api/v2/endpoints/isolate.py
+from fastapi import APIRouter, HTTPException, status
 
-from fastapi import APIRouter, HTTPException
-import asyncio
-import subprocess
 
 router = APIRouter()
 
-@router.get("/")
+
+@router.get("/", deprecated=True)
 async def isolate_info():
-    cmd = "isolate --version"
-    proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail={
+            "message": "This endpoint is deprecated because the API node does not contain isolate.",
+            "capabilities_source": "worker registry",
+            "availability": "Use /v2/workers to inspect per-worker isolate and runtime capabilities.",
+        },
     )
-    isolate_version, err = await proc.communicate()
-
-    if proc.returncode != 0:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"isolate exited with code {proc.returncode}, error={err.decode('utf-8')}"
-        )
-
-    return {
-        "isolate_version": isolate_version.decode("utf-8")
-    }

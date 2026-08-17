@@ -4,6 +4,7 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel, EmailStr, Field, conint, confloat, validator
 from datetime import datetime
 from app.core.config import settings
+from urllib.parse import urlparse
 
 # User
 class UserBase(BaseModel):
@@ -38,6 +39,9 @@ class TokenResponse(BaseModel):
 # Programming Languages
 class Language(BaseModel):
     id: int
+    slug: str
+    pool: str
+    enabled: bool
     name: str
     version: str
     source_file: str
@@ -75,6 +79,21 @@ class SubmissionBase(BaseModel):
 
     redirect_stderr_to_stdout: bool = False
     enable_network: bool = False
+    
+    callback_url: Optional[str] = None
+    
+    @validator("callback_url")
+    def validate_callback_url(cls, v):
+        if v is None:
+            return v
+        
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("callback_url must use http or https")
+        if not parsed.netloc:
+            raise ValueError("callback_url must contain host")
+        return v
+        
     
     @validator("compiler_options")
     def _check_compiler_opts(cls, v):
@@ -120,6 +139,7 @@ class SubmissionResponse(BaseModel):
     compiler_options: Optional[str] = None
     command_line_args: Optional[str] = None
     additional_files: Optional[str] = None # Base64
+    callback_url: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -162,6 +182,23 @@ class SoftwareConfiguration(BaseModel):
     always_redirect_stderr_to_stdout: bool
     allow_command_line_args: bool
     allow_compiler_options: bool
+    allow_wait: bool
+    api_wait_timeout: float
     
+    class Config:
+        orm_mode = True
+
+class CallbackDeliveryResponse(BaseModel):
+    delivery_id: str
+    event_type: str
+    callback_url: str
+    status: str
+    attempt_count: int
+    next_attempt_at: datetime
+    last_http_status: Optional[int] = None
+    last_error: Optional[str] = None
+    created_at: datetime
+    delivered_at: Optional[datetime] = None
+
     class Config:
         orm_mode = True

@@ -1,175 +1,304 @@
-# app/api/v2/endpoints/submissions_batch.py
-
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from app.models.schemas import BatchSubmissionCreate, BatchSubmissionResponse, SubmissionResponse
-from app.models.orm_models import SubmissionModel, BatchModel
-from app.db.session import get_db
+import asyncio
+import logging
 import uuid
 from datetime import datetime
-from typing import List
-from app.core.dependencies import get_current_user
-from app.models.orm_models import UserModel
-from app.core.config import settings
-from app.services.submission_service import process_submission
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
+
+from app.core.config import settings
+from app.core.dependencies import (
+    get_current_user,
+    get_submission_publisher,
+    get_submission_waiter,
+)
+from app.db.session import get_db
+from app.models.orm_models import BatchModel, LanguageModel, SubmissionModel, UserModel
+from app.models.schemas import BatchSubmissionCreate, BatchSubmissionResponse, SubmissionResponse
+from app.services.submission_response import parse_submission_fields, serialize_submission
+from app.services.submission_waiter import (
+    SubmissionWaitCancelled,
+    SubmissionWaitNotFound,
+    SubmissionWaitTimeout,
+    SubmissionWaiter,
+)
+
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _validate_batch_languages(db: Session, language_ids: set[int]):
+    languages = db.query(LanguageModel).filter(LanguageModel.id.in_(language_ids)).all()
+    by_id = {language.id: language for language in languages}
+    missing = sorted(language_ids - set(by_id))
+    if missing:
+        logger.warning(
+            "event=batch.rejected reason=languages_not_found language_ids=%s",
+            missing,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "One or more languages do not exist.",
+                "language_ids": missing,
+            },
+        )
+    disabled = sorted(language_id for language_id, language in by_id.items() if not language.enabled)
+    if disabled:
+        logger.warning(
+            "event=batch.rejected reason=languages_disabled language_ids=%s",
+            disabled,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "One or more languages are disabled.",
+                "language_ids": disabled,
+            },
+        )
+    return by_id
+
+
+async def _publish_batch(submission_publisher, jobs):
+    return await asyncio.gather(
+        *(
+            submission_publisher.publish_submission(
+                submission_token=submission.token,
+                language_slug=language.slug,
+                pool=language.pool,
+            )
+            for submission, language in jobs
+        ),
+        return_exceptions=True,
+    )
+
 
 @router.post("/", response_model=BatchSubmissionResponse, status_code=status.HTTP_201_CREATED)
 async def create_batch_submission(
     batch_submission: BatchSubmissionCreate,
+    request: Request,
     wait: bool = Query(False, description="Wait for batch results"),
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user),
+    submission_publisher=Depends(get_submission_publisher),
+    submission_waiter: SubmissionWaiter = Depends(get_submission_waiter),
 ):
+    if wait and not settings.ALLOW_WAIT:
+        logger.warning(
+            "event=batch.rejected reason=wait_disabled user_id=%s size=%s",
+            current_user.id,
+            len(batch_submission.submissions),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Synchronous waiting is disabled by server settings.",
+        )
     if len(batch_submission.submissions) > settings.MAX_BATCH_SIZE:
-        raise HTTPException(status_code=422, detail=f"Size of batch submission must be less than {settings.MAX_BATCH_SIZE}.")
-    batch_token = str(uuid.uuid4())
-    created_at = datetime.utcnow()
-
-    db_batch = BatchModel(
-        batch_token=batch_token,
-        created_at=created_at
-    )
-
-    db.add(db_batch)
-    db.commit()
-    db.refresh(db_batch)
-
-    submission_tokens = []
-    results = []
-
-    for subm in batch_submission.submissions:
-        token = str(uuid.uuid4())
-        submission_tokens.append(token)
-
-        db_submission = SubmissionModel(
-            token=token,
-            language_id=subm.language_id,
-            source_code=subm.source_code,
-            stdin=subm.stdin,
-            expected_output=subm.expected_output,
-            compiler_options=subm.compiler_options,
-            command_line_args=subm.command_line_args,
-            time_limit=subm.time_limit,
-            extra_time=subm.extra_time,
-            wall_time_limit=subm.wall_time_limit,
-            memory_limit=subm.memory_limit,
-            stack_size=subm.stack_size,
-            redirect_stderr_to_stdout=subm.redirect_stderr_to_stdout,
-            enable_network=subm.enable_network,
-            max_file_size=subm.max_file_size,
-            additional_files=subm.additional_files,
-            status_id=1,  # In Queue
-            created_at=created_at,
-            batch_id=db_batch.id,
-            user_id=current_user.id
+        logger.warning(
+            "event=batch.rejected reason=size_limit user_id=%s size=%s max_size=%s",
+            current_user.id,
+            len(batch_submission.submissions),
+            settings.MAX_BATCH_SIZE,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Size of batch submission must not exceed {settings.MAX_BATCH_SIZE}.",
         )
 
-        db.add(db_submission)
+    language_ids = {submission.language_id for submission in batch_submission.submissions}
+    languages = _validate_batch_languages(db, language_ids)
+    batch_token = str(uuid.uuid4())
+    created_at = datetime.utcnow()
+    db_batch = BatchModel(batch_token=batch_token, created_at=created_at)
+
+    submissions: list[SubmissionModel] = []
+    try:
+        db.add(db_batch)
+        db.flush()
+        for item in batch_submission.submissions:
+            db_submission = SubmissionModel(
+                token=str(uuid.uuid4()),
+                language_id=item.language_id,
+                source_code=item.source_code,
+                stdin=item.stdin,
+                expected_output=item.expected_output,
+                compiler_options=item.compiler_options,
+                command_line_args=item.command_line_args,
+                time_limit=item.time_limit,
+                extra_time=item.extra_time,
+                wall_time_limit=item.wall_time_limit,
+                memory_limit=item.memory_limit,
+                stack_size=item.stack_size,
+                redirect_stderr_to_stdout=item.redirect_stderr_to_stdout,
+                enable_network=item.enable_network,
+                max_file_size=item.max_file_size,
+                additional_files=item.additional_files,
+                callback_url=item.callback_url,
+                status_id=1,
+                created_at=created_at,
+                batch_id=db_batch.id,
+                user_id=current_user.id,
+            )
+            submissions.append(db_submission)
+        db.add_all(submissions)
         db.commit()
-        db.refresh(db_submission)
-        
-        if wait:
-            db_submission.status_id = 2
-            db.commit()
-            await process_submission(db_submission, db)
-            db.refresh(db_submission)
-            results.append(SubmissionResponse(
-                token=db_submission.token,
-                status_id=db_submission.status_id,
-                created_at=db_submission.created_at,
-                finished_at=db_submission.finished_at,
-                time=db_submission.time,
-                wall_time=db_submission.wall_time,
-                memory=db_submission.memory,
-                exit_code=db_submission.exit_code,
-                exit_signal=db_submission.exit_signal,
-                stdout=db_submission.stdout,
-                stderr=db_submission.stderr,
-                compile_output=db_submission.compile_output,
-                source_code=db_submission.source_code,
-                stdin=db_submission.stdin,
-                expected_output=db_submission.expected_output,
-                compiler_options=db_submission.compiler_options,
-                command_line_args=db_submission.command_line_args,
-                additional_files=db_submission.additional_files
-            ))
-        else:
-            from main import submission_queue_manager
-            await submission_queue_manager.enqueue_submission(db_submission, db)
+    except Exception:
+        db.rollback()
+        raise
+
+    logger.info(
+        "event=batch.accepted batch_token=%s user_id=%s size=%s language_ids=%s wait=%s",
+        batch_token,
+        current_user.id,
+        len(submissions),
+        sorted(language_ids),
+        wait,
+    )
+
+    tokens = [submission.token for submission in submissions]
+    jobs = [(submission, languages[submission.language_id]) for submission in submissions]
+    publish_results = await _publish_batch(submission_publisher, jobs)
+    failed_tokens = [
+        token
+        for token, result in zip(tokens, publish_results)
+        if isinstance(result, Exception)
+    ]
+    if failed_tokens:
+        for token, result in zip(tokens, publish_results):
+            if isinstance(result, Exception):
+                logger.error(
+                    "event=batch.enqueue_failed batch_token=%s token=%s error_type=%s",
+                    batch_token,
+                    token,
+                    type(result).__name__,
+                )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "message": "The batch was persisted, but one or more submissions could not be enqueued.",
+                "batch_token": batch_token,
+                "submission_tokens": tokens,
+                "failed_submission_tokens": failed_tokens,
+            },
+        )
+    logger.info(
+        "event=batch.enqueued batch_token=%s size=%s",
+        batch_token,
+        len(tokens),
+    )
+
+    results = None
+    if wait:
+        try:
+            await submission_waiter.wait_many(
+                tokens,
+                disconnected=request.is_disconnected,
+            )
+        except SubmissionWaitTimeout as exc:
+            logger.warning(
+                "event=batch.wait_timed_out batch_token=%s pending_count=%s",
+                batch_token,
+                len(exc.pending_tokens),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail={
+                    "message": "Timed out waiting for batch results; pending jobs are still running.",
+                    "batch_token": batch_token,
+                    "submission_tokens": tokens,
+                    "pending_submission_tokens": list(exc.pending_tokens),
+                },
+            ) from exc
+        except SubmissionWaitCancelled as exc:
+            logger.info(
+                "event=batch.wait_cancelled batch_token=%s size=%s",
+                batch_token,
+                len(tokens),
+            )
+            raise HTTPException(
+                status_code=499,
+                detail={
+                    "message": "Client disconnected; batch jobs are still running.",
+                    "batch_token": batch_token,
+                    "submission_tokens": tokens,
+                },
+            ) from exc
+        except SubmissionWaitNotFound as exc:
+            logger.error(
+                "event=batch.wait_not_found batch_token=%s missing_count=%s",
+                batch_token,
+                len(exc.missing_tokens),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "message": "One or more submissions were removed while waiting.",
+                    "batch_token": batch_token,
+                    "missing_submission_tokens": list(exc.missing_tokens),
+                },
+            ) from exc
+
+        await run_in_threadpool(db.expire_all)
+        refreshed = db.query(SubmissionModel).filter(SubmissionModel.token.in_(tokens)).all()
+        by_token = {submission.token: submission for submission in refreshed}
+        results = [SubmissionResponse.from_orm(by_token[token]) for token in tokens]
+        logger.info(
+            "event=batch.wait_completed batch_token=%s status_ids=%s",
+            batch_token,
+            [result.status_id for result in results],
+        )
 
     return BatchSubmissionResponse(
         batch_token=batch_token,
-        submission_tokens=submission_tokens,
-        results=results or None
+        submission_tokens=tokens,
+        results=results,
     )
 
-@router.get("/{batch_token}", response_model=List[SubmissionResponse])
+
+@router.get("/{batch_token}", response_model=List[Dict[str, Any]])
 async def get_batch_submissions(
     batch_token: str,
+    fields: Optional[str] = Query(None, description="Comma-separated list of fields to return."),
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user),
 ):
-    batch = db.query(BatchModel).filter(
-        BatchModel.batch_token == batch_token
-    ).first()
+    batch = db.query(BatchModel).filter(BatchModel.batch_token == batch_token).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch submission not found.")
 
     submissions = db.query(SubmissionModel).filter(
         SubmissionModel.batch_id == batch.id,
-        SubmissionModel.user_id == current_user.id
+        SubmissionModel.user_id == current_user.id,
     ).all()
+    requested_fields = parse_submission_fields(fields)
+    return [serialize_submission(submission, requested_fields) for submission in submissions]
 
-    response = []
-    for db_submission in submissions:
-        response.append(SubmissionResponse(
-            token=db_submission.token,
-            status_id=db_submission.status_id,
-            created_at=db_submission.created_at,
-            finished_at=db_submission.finished_at,
-            time=db_submission.time,
-            wall_time=db_submission.wall_time,
-            memory=db_submission.memory,
-            exit_code=db_submission.exit_code,
-            exit_signal=db_submission.exit_signal,
-            stdout=db_submission.stdout,
-            stderr=db_submission.stderr,
-            compile_output=db_submission.compile_output,
-            source_code=db_submission.source_code,
-            stdin=db_submission.stdin,
-            expected_output=db_submission.expected_output,
-            compiler_options=db_submission.compiler_options,
-            command_line_args=db_submission.command_line_args,
-            additional_files=db_submission.additional_files
-        ))
-
-    return response
 
 @router.delete("/{batch_token}")
 async def delete_batch_submission(
     batch_token: str,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user),
 ):
     if not getattr(current_user, "privileged_user", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only privileged users can delete submissions."
+            detail="Only privileged users can delete submissions.",
         )
-    
-    batch = db.query(BatchModel).filter(
-        BatchModel.batch_token == batch_token
-    ).first()
+
+    batch = db.query(BatchModel).filter(BatchModel.batch_token == batch_token).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch submission not found.")
-    
+
     submissions_count = db.query(SubmissionModel).filter(
         SubmissionModel.batch_id == batch.id
     ).delete()
-    
     db.delete(batch)
     db.commit()
-    return {"message" : f"Batch submission {batch_token} removed successfully!",
-            "submissions_count" : submissions_count}
+    return {
+        "message": f"Batch submission {batch_token} removed successfully!",
+        "submissions_count": submissions_count,
+    }

@@ -1,43 +1,195 @@
+name: execengine
+
+x-lightweight-service: &lightweight-service
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  stop_grace_period: 30s
+
 services:
+  config-init:
+    image: wiosna97/execengine-config-init:1.2.0
+    init: true
+    read_only: true
+    network_mode: none
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - ./execengine.ini:/source/execengine.ini:ro
+      - api_config:/output/api
+      - worker_config:/output/worker
+      - callback_config:/output/callback
+      - maintenance_config:/output/maintenance
+      - migrate_config:/output/migrate
+      - bootstrap_config:/output/bootstrap
+      - postgres_config:/output/postgres
+      - rabbitmq_config:/output/rabbitmq
+
   db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: exec_engine
+    image: postgres:15@sha256:2c64f6d1be50ea37f722d27b936abc6557e5fb95c995514bd9c43490ef8160ef
+    entrypoint: ["/run/execengine/entrypoint.sh"]
+    restart: unless-stopped
+    depends_on:
+      config-init:
+        condition: service_completed_successfully
+    networks:
+      - backend
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - postgres_config:/run/execengine:ro
+    healthcheck:
+      test: ["CMD", "/run/execengine/healthcheck.sh"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    image: rabbitmq:3-management@sha256:9cfb7e92ae7d296aec4d1ae799e431209f7ed57d55f9c929d95667d0ccf1c920
+    entrypoint: ["/run/execengine/entrypoint.sh"]
+    restart: unless-stopped
+    depends_on:
+      config-init:
+        condition: service_completed_successfully
+    networks:
+      - backend
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_config:/run/execengine:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  migrate:
+    image: wiosna97/execengine-migrate:1.2.0
+    <<: *lightweight-service
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    volumes:
+      - migrate_config:/run/execengine:ro
+
+  bootstrap:
+    image: wiosna97/execengine-bootstrap:1.2.0
+    <<: *lightweight-service
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    volumes:
+      - bootstrap_config:/run/execengine:ro
 
   api:
-    image: wiosna97/execengine-api:latest
-    privileged: true
-    tty: true
-    restart: always
+    image: wiosna97/execengine-api:1.2.0
+    <<: *lightweight-service
+    restart: unless-stopped
     depends_on:
-      - db
-      - rabbitmq
+      bootstrap:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    networks:
+      - public
+      - backend
     volumes:
-      - ./execengine.ini:/execengine.ini:ro
-    environment:
-      RABBITMQ_HOST: rabbitmq
+      - api_config:/run/execengine:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
 
+  worker:
+    image: wiosna97/execengine-worker-full:1.2.0
+    privileged: true
+    cgroup: host
+    restart: unless-stopped
+    stop_signal: SIGRTMIN+3
+    stop_grace_period: 90s
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+    tmpfs:
+      - /run:size=64m,mode=0755
+      - /run/lock:size=16m,mode=0755
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - worker_config:/run/execengine:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "systemctl is-active --quiet isolate.service && systemctl is-active --quiet execengine-worker.service && test -s /run/isolate/cgroup && isolate --print-cg-root >/dev/null"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  callback-worker:
+    image: wiosna97/execengine-callback:1.2.0
+    <<: *lightweight-service
+    restart: unless-stopped
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - backend
+      - callback-egress
+    volumes:
+      - callback_config:/run/execengine:ro
+
+  maintenance:
+    image: wiosna97/execengine-maintenance:1.2.0
+    <<: *lightweight-service
+    restart: unless-stopped
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    volumes:
+      - maintenance_config:/run/execengine:ro
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  api_config:
+  worker_config:
+  callback_config:
+  maintenance_config:
+  migrate_config:
+  bootstrap_config:
+  postgres_config:
+  rabbitmq_config:
+
+networks:
+  public:
+  callback-egress:
+  backend:
+    internal: true

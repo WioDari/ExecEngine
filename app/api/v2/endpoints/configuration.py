@@ -19,9 +19,20 @@ async def hardware_info(current_user: UserModel = Depends(get_current_user)):
                 detail="Only privileged users can see information about server configuration."
             )
     try:
-        cmd = subprocess.run(['lscpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stdout
+        cmd = await asyncio.to_thread(
+            subprocess.run,
+            ["lscpu"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        cmd = cmd.stdout
         lines = cmd.split('\n')
-        configs = {}
+        configs = {
+            "node_role": "api",
+            "scope": "API node hardware only; execution worker capabilities are not represented here.",
+        }
         for line in lines:
             if ':' in line:
                 key, val = line.split(':', 1)
@@ -29,7 +40,7 @@ async def hardware_info(current_user: UserModel = Depends(get_current_user)):
                 val = val.strip()
                 configs[key] = val
         return {"configuration": configs}
-    except subprocess.CalledProcessError as e:
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/software", response_model=SoftwareConfiguration, status_code=status.HTTP_200_OK)
@@ -58,7 +69,9 @@ async def software_info(current_user: UserModel = Depends(get_current_user)):
             allow_enable_network=settings.ALLOW_ENABLE_NETWORK,
             always_redirect_stderr_to_stdout=settings.ALWAYS_REDIRECT_STDERR_TO_STDOUT,
             allow_command_line_args=settings.ALLOW_COMMAND_LINE_ARGS,
-            allow_compiler_options=settings.ALLOW_COMPILER_OPTIONS
+            allow_compiler_options=settings.ALLOW_COMPILER_OPTIONS,
+            allow_wait=settings.ALLOW_WAIT,
+            api_wait_timeout=settings.API_WAIT_TIMEOUT,
         )
         return software_configs
     except subprocess.CalledProcessError as e:

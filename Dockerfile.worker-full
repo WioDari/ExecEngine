@@ -1,0 +1,41 @@
+FROM COMPILER_IMAGE=wiosna97/execengine-compilers:1.2.1
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        cgroup-tools \
+        curl \
+        python3 \
+        python3-pip \
+        systemd \
+        systemd-sysv \
+    && install -d -m 0755 /etc/apt/keyrings \
+    && curl -fsSL https://www.ucw.cz/isolate/debian/signing-key.asc -o /etc/apt/keyrings/isolate.asc \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/isolate.asc] http://www.ucw.cz/isolate/debian/ bookworm-isolate main" > /etc/apt/sources.list.d/isolate.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends isolate \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements-base.txt requirements-worker.txt ./
+RUN python3 -m pip install --break-system-packages -r requirements-worker.txt
+
+COPY app ./app
+COPY config ./config
+COPY docker/worker/worker-entrypoint.sh /usr/local/sbin/execengine-worker-entrypoint
+COPY docker/worker/execengine-worker.service /etc/systemd/system/execengine-worker.service
+
+RUN chmod 0755 /usr/local/sbin/execengine-worker-entrypoint \
+    && systemctl enable isolate.service execengine-worker.service \
+    && systemctl set-default multi-user.target \
+    && rm -f /etc/machine-id \
+    && touch /etc/machine-id
+
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

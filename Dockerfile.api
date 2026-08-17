@@ -1,0 +1,57 @@
+FROM PYTHON_IMAGE=python:3.11-slim-bookworm AS runtime-base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN groupadd --system --gid 10001 execengine \
+    && useradd --system --uid 10001 --gid execengine --home-dir /nonexistent execengine
+
+COPY requirements-*.txt /requirements/
+
+FROM runtime-base AS config-init
+COPY app ./app
+ENTRYPOINT ["python", "-m", "app.core.config_distribution"]
+
+FROM runtime-base AS api
+RUN pip install -r /requirements/requirements-api.txt
+COPY app ./app
+COPY config ./config
+COPY main.py ./
+COPY app/public ./public
+USER execengine
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM runtime-base AS callback
+RUN pip install -r /requirements/requirements-callback.txt
+COPY app ./app
+COPY config ./config
+USER execengine
+CMD ["python", "-m", "app.callbacks.main"]
+
+FROM runtime-base AS maintenance
+RUN pip install -r /requirements/requirements-maintenance.txt
+COPY app ./app
+COPY config ./config
+USER execengine
+CMD ["python", "-m", "app.maintenance.main"]
+
+FROM runtime-base AS migrate
+RUN pip install -r /requirements/requirements-migrate.txt
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./
+USER execengine
+ENTRYPOINT ["alembic"]
+CMD ["upgrade", "head"]
+
+FROM runtime-base AS bootstrap
+RUN pip install -r /requirements/requirements-bootstrap.txt
+COPY app ./app
+COPY config ./config
+USER execengine
+ENTRYPOINT ["python", "-m", "app.db.bootstrap"]
