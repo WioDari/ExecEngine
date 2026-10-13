@@ -50,7 +50,5 @@ Current size of docker image (compilers): 17.7 GB
 | Text                             |           |
 | TypeScript                       | 5.9.2     |
 | Visual Basic (.NET SDK)          | 8.0.422   |
-| Typescript                       | 5.9.2     |
-| Visual Basic (.NET SDK)          | 8.0.412   |
 
 Main inspiration: https://github.com/judge0/judge0/tree/master
